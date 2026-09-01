@@ -232,3 +232,17 @@ the previous contents are put back too early, the target pastes the _old_ text.
 See [Troubleshooting](troubleshooting.md) if you hit that.
 
 Next: [Architecture](architecture.md).
+
+### `cleaner.keep_alive`
+
+How long Ollama keeps the cleanup model in VRAM. Default `-1` pins it
+indefinitely, so no dictation ever pays a model reload; this costs ~1.3 GiB of
+VRAM permanently. Ollama's own default is 5 minutes of idle, after which the
+first dictation pays a reload of ~1.8 s warm, or up to ~13 s cold from disk.
+Set `"5m"` to reclaim the VRAM when idle and accept that latency.
+
+### `cleaner.timeout_sec`
+
+Upper bound on a single cleanup request, default `15.0`. It must exceed a cold
+model load, otherwise the first dictation after a pause silently falls back to
+the raw transcript. Every fallback is logged.

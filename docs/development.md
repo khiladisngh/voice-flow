@@ -47,7 +47,7 @@ See [Architecture](architecture.md) for what each module actually does and why.
 
 ```bash
 .venv/bin/pytest                                     # everything: 51 passed
-.venv/bin/pytest -m "not uinput and not pipewire"    # CI subset: 40 passed, 11 deselected
+.venv/bin/pytest -m "not uinput and not pipewire"    # CI subset: 38 passed, 13 deselected
 .venv/bin/pytest tests/test_hotkey.py -v             # one file
 .venv/bin/pytest --cov=voice_flow                    # coverage
 ```
@@ -72,6 +72,21 @@ Two markers are registered in `pyproject.toml`:
 `pytest_collection_modifyitems` adds a skip marker to any test carrying a marker
 whose capability probe failed. Locally the tests run for real; in CI they are
 deselected by `-m "not uinput and not pipewire"`.
+
+### Reproducing CI locally
+
+A machine that _has_ the hardware cannot detect a device-touching test that
+forgot its marker: the test simply passes. Force both probes off to collect
+exactly what CI collects:
+
+```bash
+VOICE_FLOW_TEST_NO_HARDWARE=1 .venv/bin/pytest
+```
+
+Expect `38 passed, 13 skipped`. If anything **fails** rather than skips, that
+test reaches for a device without declaring a marker — add the marker instead
+of loosening the probe. Run this before pushing changes to `tests/` or to
+`recorder.py`, `injector.py`, or `hotkey.py`.
 
 !!! warning "New tests touching real devices MUST carry the matching marker"
 An unmarked test that opens `/dev/uinput` or spawns `pw-record` will pass on

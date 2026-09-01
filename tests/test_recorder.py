@@ -90,6 +90,7 @@ def test_recorder_stop_timeout_force_kills(monkeypatch, tmp_path):
             pass
 
 
+@pytest.mark.pipewire
 def test_recorder_session_paths(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
     recorder = AudioRecorder(sound_feedback=False, notifications=False)
@@ -124,6 +125,7 @@ def test_recorder_stop_already_dead_process(monkeypatch, tmp_path):
     assert not get_pid_file().exists()
 
 
+@pytest.mark.pipewire
 def test_recorder_custom_audio_path_handling(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
     custom_path = str(tmp_path / "custom_recording.wav")

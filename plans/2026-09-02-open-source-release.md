@@ -113,7 +113,7 @@ Expected: `51 passed` (no marker warnings — `--strict-markers` is on).
 ```bash
 .venv/bin/pytest -m "not uinput and not pipewire"
 ```
-Expected: `40 passed, 11 deselected`.
+Expected: `38 passed, 13 deselected`.
 
 - [ ] **Step 6: Lint clean**
 
@@ -459,7 +459,7 @@ Append: `.ruff_cache/`, `.pytest_cache/`, `.coverage`, `htmlcov/`, `site/`, `*.w
 .venv/bin/python -c "import json;json.load(open('voice-flow.code-workspace'));print('workspace json ok')"
 make test-ci
 ```
-Expected: `workspace json ok`, then `40 passed, 11 deselected`.
+Expected: `workspace json ok`, then `38 passed, 13 deselected`.
 
 - [ ] **Step 6: Commit**
 

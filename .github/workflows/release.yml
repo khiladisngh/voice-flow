@@ -36,5 +36,9 @@ jobs:
       - uses: softprops/action-gh-release@v2
         with:
           body_path: release-notes.md
-          files: dist/*
+          # Explicit globs, not dist/*: uv build also writes a dist/.gitignore,
+          # which GitHub would attach as a bogus "default.gitignore" asset.
+          files: |
+            dist/*.whl
+            dist/*.tar.gz
           generate_release_notes: false

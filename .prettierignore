@@ -1,0 +1,18 @@
+# Environments and build output
+.venv/
+node_modules/
+site/
+dist/
+build/
+htmlcov/
+
+# Lockfiles are tool-owned
+uv.lock
+package-lock.json
+
+# Internal engineering history, kept as written
+plans/
+
+# Contributor Covenant is reproduced verbatim; do not reflow it
+CODE_OF_CONDUCT.md
+.cache/

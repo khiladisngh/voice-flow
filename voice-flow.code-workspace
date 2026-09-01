@@ -1,0 +1,176 @@
+{
+  "folders": [{ "name": "voice-flow", "path": "." }],
+  "settings": {
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/bin/python",
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestArgs": ["tests"],
+    "python.analysis.extraPaths": ["${workspaceFolder}"],
+    "files.exclude": {
+      "**/__pycache__": true,
+      "**/*.egg-info": true,
+      "**/.pytest_cache": true,
+      "**/.ruff_cache": true
+    },
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
+    "editor.rulers": [110],
+    "[python]": {
+      "editor.defaultFormatter": "charliermarsh.ruff",
+      "editor.formatOnSave": true,
+      "editor.codeActionsOnSave": { "source.organizeImports.ruff": "explicit" }
+    },
+    "yaml.schemas": {
+      "https://json.schemastore.org/github-workflow.json": ".github/workflows/*.yml"
+    }
+  },
+  "extensions": {
+    "recommendations": [
+      "ms-python.python",
+      "charliermarsh.ruff",
+      "redhat.vscode-yaml",
+      "tamasfe.even-better-toml",
+      "bierner.markdown-mermaid"
+    ]
+  },
+  "tasks": {
+    "version": "2.0.0",
+    "options": { "cwd": "${workspaceFolder}" },
+    "presentation": { "panel": "dedicated", "clear": true },
+    "tasks": [
+      {
+        "label": "sync",
+        "detail": "Install runtime, CUDA extra, and dev dependencies",
+        "type": "shell",
+        "command": "uv sync --extra cuda --group dev",
+        "problemMatcher": []
+      },
+      {
+        "label": "test",
+        "detail": "Full suite, including hardware-bound tests",
+        "type": "shell",
+        "command": "${workspaceFolder}/.venv/bin/pytest",
+        "group": { "kind": "test", "isDefault": true },
+        "problemMatcher": []
+      },
+      {
+        "label": "test: ci subset",
+        "detail": "What GitHub Actions runs (no uinput, no PipeWire)",
+        "type": "shell",
+        "command": "${workspaceFolder}/.venv/bin/pytest -m 'not uinput and not pipewire'",
+        "problemMatcher": []
+      },
+      {
+        "label": "lint",
+        "detail": "Everything CI checks: ruff (Python) + prettier (Markdown/YAML/JSON)",
+        "type": "shell",
+        "command": "${workspaceFolder}/.venv/bin/ruff check . && ${workspaceFolder}/.venv/bin/ruff format --check . && npx prettier --check .",
+        "group": { "kind": "build", "isDefault": true },
+        "problemMatcher": []
+      },
+      {
+        "label": "format",
+        "detail": "Rewrite files in place: ruff for Python, prettier for docs and config",
+        "type": "shell",
+        "command": "${workspaceFolder}/.venv/bin/ruff format . && ${workspaceFolder}/.venv/bin/ruff check --fix . && npx prettier --write .",
+        "problemMatcher": []
+      },
+      {
+        "label": "format: prettier only",
+        "detail": "Format Markdown, YAML, and JSON",
+        "type": "shell",
+        "command": "npx prettier --write .",
+        "problemMatcher": []
+      },
+      {
+        "label": "daemon: restart",
+        "detail": "Restart the systemd user service and report status",
+        "type": "shell",
+        "command": "systemctl --user restart voice-flow && sleep 6 && ./voice-flow.sh status",
+        "problemMatcher": []
+      },
+      {
+        "label": "daemon: status",
+        "detail": "systemd unit state plus socket readiness",
+        "type": "shell",
+        "command": "systemctl --user status voice-flow --no-pager; ./voice-flow.sh status",
+        "problemMatcher": []
+      },
+      {
+        "label": "daemon: logs",
+        "detail": "Follow the daemon journal",
+        "type": "shell",
+        "command": "journalctl --user -u voice-flow -f",
+        "isBackground": true,
+        "problemMatcher": []
+      },
+      {
+        "label": "dictate: toggle",
+        "detail": "Start or stop a dictation session from the editor",
+        "type": "shell",
+        "command": "./voice-flow.sh toggle",
+        "problemMatcher": []
+      },
+      {
+        "label": "docs: serve",
+        "detail": "Live MkDocs preview on http://127.0.0.1:8000",
+        "type": "shell",
+        "command": "uv run --group docs zensical serve",
+        "isBackground": true,
+        "problemMatcher": []
+      },
+      {
+        "label": "docs: build",
+        "detail": "Strict build, matching the docs workflow",
+        "type": "shell",
+        "command": "uv run --group docs zensical build --strict",
+        "problemMatcher": []
+      },
+      {
+        "label": "release: bump patch",
+        "detail": "Bump patch version, update changelog, commit, and tag",
+        "type": "shell",
+        "command": "${workspaceFolder}/.venv/bin/bump-my-version bump patch --verbose",
+        "problemMatcher": []
+      },
+      {
+        "label": "release: bump minor",
+        "detail": "Bump minor version, update changelog, commit, and tag",
+        "type": "shell",
+        "command": "${workspaceFolder}/.venv/bin/bump-my-version bump minor --verbose",
+        "problemMatcher": []
+      }
+    ]
+  },
+  "launch": {
+    "version": "0.2.0",
+    "configurations": [
+      {
+        "name": "Daemon (foreground)",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "voice_flow.main",
+        "args": ["daemon"],
+        "console": "integratedTerminal",
+        "justMyCode": false
+      },
+      {
+        "name": "Toggle once",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "voice_flow.main",
+        "args": ["toggle"],
+        "console": "integratedTerminal"
+      },
+      {
+        "name": "Pytest: current file",
+        "type": "debugpy",
+        "request": "launch",
+        "module": "pytest",
+        "args": ["${file}", "-v"],
+        "console": "integratedTerminal",
+        "justMyCode": false
+      }
+    ]
+  }
+}

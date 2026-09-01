@@ -69,7 +69,7 @@ def test_runtime_dir_permissions_and_structure(tmp_path, monkeypatch):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `/home/gishant-singh/Dev/tools/voice-flow/.venv/bin/pytest tests/test_paths.py`
+Run: `./.venv/bin/pytest tests/test_paths.py`
 Expected: FAIL with `ModuleNotFoundError: No module named 'voice_flow.paths'`
 
 - [ ] **Step 3: Implement `voice_flow/paths.py` and update usages**
@@ -107,7 +107,7 @@ Replace hardcoded `/dev/shm` paths with functions from `voice_flow.paths`. Remov
 
 - [ ] **Step 5: Run test to verify it passes**
 
-Run: `/home/gishant-singh/Dev/tools/voice-flow/.venv/bin/pytest tests/test_paths.py`
+Run: `./.venv/bin/pytest tests/test_paths.py`
 Expected: PASS (1 passed)
 
 ---
@@ -151,7 +151,7 @@ def test_recorder_lifecycle_flushes_process(monkeypatch, tmp_path):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `/home/gishant-singh/Dev/tools/voice-flow/.venv/bin/pytest tests/test_recorder.py`
+Run: `./.venv/bin/pytest tests/test_recorder.py`
 Expected: FAIL or timeout on process wait.
 
 - [ ] **Step 3: Implement process termination check in `recorder.py`**
@@ -195,7 +195,7 @@ def stop(self, timeout: float = 1.0) -> Optional[str]:
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `/home/gishant-singh/Dev/tools/voice-flow/.venv/bin/pytest tests/test_recorder.py`
+Run: `./.venv/bin/pytest tests/test_recorder.py`
 Expected: PASS
 
 ---
@@ -231,7 +231,7 @@ def test_injector_singleton_device_and_restore():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `/home/gishant-singh/Dev/tools/voice-flow/.venv/bin/pytest tests/test_injector.py`
+Run: `./.venv/bin/pytest tests/test_injector.py`
 Expected: FAIL with `AttributeError: 'TextInjector' object has no attribute 'ui'`
 
 - [ ] **Step 3: Implement persistent `UInput` in `voice_flow/injector.py`**
@@ -300,7 +300,7 @@ class TextInjector:
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `/home/gishant-singh/Dev/tools/voice-flow/.venv/bin/pytest tests/test_injector.py`
+Run: `./.venv/bin/pytest tests/test_injector.py`
 Expected: PASS
 
 ---
@@ -337,7 +337,7 @@ def test_hotkey_listener_initialization():
 
 - [ ] **Step 2: Run test to verify it fails or runs**
 
-Run: `/home/gishant-singh/Dev/tools/voice-flow/.venv/bin/pytest tests/test_hotkey.py`
+Run: `./.venv/bin/pytest tests/test_hotkey.py`
 
 - [ ] **Step 3: Implement device unregister and error recovery in `hotkey.py`**
 
@@ -348,7 +348,7 @@ In `_run_listener`:
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `/home/gishant-singh/Dev/tools/voice-flow/.venv/bin/pytest tests/test_hotkey.py`
+Run: `./.venv/bin/pytest tests/test_hotkey.py`
 Expected: PASS
 
 ---
@@ -403,7 +403,7 @@ def test_framed_socket_communication(tmp_path, monkeypatch):
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `/home/gishant-singh/Dev/tools/voice-flow/.venv/bin/pytest tests/test_ipc.py`
+Run: `./.venv/bin/pytest tests/test_ipc.py`
 Expected: FAIL on framing or connection.
 
 - [ ] **Step 3: Implement newline-framed socket send/receive in `daemon.py` and `main.py`**
@@ -431,7 +431,7 @@ Add `signal.signal(signal.SIGTERM, ...)` and `signal.signal(signal.SIGINT, ...)`
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `/home/gishant-singh/Dev/tools/voice-flow/.venv/bin/pytest tests/test_ipc.py`
+Run: `./.venv/bin/pytest tests/test_ipc.py`
 Expected: PASS
 
 ---
@@ -463,7 +463,7 @@ def test_cleaner_uses_session_and_wraps_prompt():
 
 - [ ] **Step 2: Run test to verify it fails**
 
-Run: `/home/gishant-singh/Dev/tools/voice-flow/.venv/bin/pytest tests/test_cleaner.py`
+Run: `./.venv/bin/pytest tests/test_cleaner.py`
 Expected: FAIL with `AttributeError: 'TextCleaner' object has no attribute 'session'`
 
 - [ ] **Step 3: Implement `requests.Session()` and `<spoken_text>` delimiter in `cleaner.py`**
@@ -518,7 +518,7 @@ class TextCleaner:
 
 - [ ] **Step 4: Run test to verify it passes**
 
-Run: `/home/gishant-singh/Dev/tools/voice-flow/.venv/bin/pytest tests/test_cleaner.py`
+Run: `./.venv/bin/pytest tests/test_cleaner.py`
 Expected: PASS
 
 ---
@@ -533,7 +533,7 @@ Expected: PASS
 
 - [ ] **Step 1: Clean divergent `src/` directory and fix `pyproject.toml`**
 
-Delete `src/` stub: `rm -rf /home/gishant-singh/Dev/tools/voice-flow/src`
+Delete `src/` stub: `rm -rf ./src`
 Update `pyproject.toml` scripts:
 ```toml
 [project.scripts]
@@ -564,11 +564,11 @@ WantedBy=default.target
 
 Run:
 ```bash
-cp /home/gishant-singh/Dev/tools/voice-flow/voice-flow.service ~/.config/systemd/user/voice-flow.service
+cp ./voice-flow.service ~/.config/systemd/user/voice-flow.service
 systemctl --user daemon-reload
 systemctl --user restart voice-flow
 sleep 2
-/home/gishant-singh/Dev/tools/voice-flow/voice-flow.sh status
+./voice-flow.sh status
 ```
 Expected: `Daemon running: YES (warm in GPU)`
 

@@ -1,0 +1,47 @@
+name: Feature request
+description: Suggest an improvement or new capability.
+title: "[Feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Voice Flow aims to stay small, fully offline, and fast. Proposals that
+        keep the pipeline local and under ~200 ms end to end are the easiest to
+        accept.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem statement
+      description: What are you trying to do that Voice Flow makes hard or impossible today?
+      placeholder: I dictate into a terminal where clipboard paste is not available, so ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: solution
+    attributes:
+      label: Proposed solution
+      description: Describe the behaviour you would like, including any new config keys or CLI flags.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Other approaches you tried or rejected, and why they fall short.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: contribution
+    attributes:
+      label: Are you willing to submit a pull request?
+      options:
+        - "Yes, I would like to implement this"
+        - "Yes, with guidance"
+        - "No, I am only proposing the idea"
+    validations:
+      required: true

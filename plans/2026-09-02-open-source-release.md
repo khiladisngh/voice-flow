@@ -19,7 +19,7 @@
 - Release tags MUST be `v{version}` (e.g. `v0.1.0`); changelog format MUST be Keep a Changelog 1.1.0 with Semantic Versioning 2.0.0.
 - `nvidia-cublas-cu12` and `nvidia-cudnn-cu12` total 2.2 GB installed and MUST NOT be in `[project.dependencies]`; they belong to an optional extra named `cuda`. Documented install command is `uv sync --extra cuda`.
 - CI MUST NOT require `/dev/uinput`, PipeWire, an NVIDIA GPU, or a Wayland session. Tests needing those carry the `uinput` or `pipewire` marker and self-skip via `tests/conftest.py` capability probes.
-- No secrets, tokens, absolute home paths, or machine-specific hostnames in any committed file. Systemd units use `%h`, not `/home/gishant-singh`.
+- No secrets, tokens, absolute home paths, or machine-specific hostnames in any committed file. Systemd units use `%h`, not `~`.
 - The running `voice-flow.service` MUST still be active and answering `voice-flow.sh status` at the end.
 - Every task ends with a commit. Conventional Commits prefixes (`feat:`, `fix:`, `docs:`, `chore:`, `ci:`, `build:`).
 
@@ -267,7 +267,7 @@ graph LR
 - [ ] **Step 3: Verify no absolute home paths leaked**
 
 ```bash
-grep -n "/home/gishant-singh" README.md || echo "clean"
+grep -n "~" README.md || echo "clean"
 ```
 Expected: `clean`.
 
@@ -815,7 +815,7 @@ Expected: `main`.
 
 ```bash
 git status --short
-grep -rn "/home/gishant-singh" --include="*.md" --include="*.yml" --include="*.toml" --include="*.json" . \
+grep -rn "~" --include="*.md" --include="*.yml" --include="*.toml" --include="*.json" . \
   --exclude-dir=.venv --exclude-dir=.git --exclude-dir=docs/superpowers || echo "no absolute home paths"
 ```
 Expected: empty status; `no absolute home paths`. `voice-flow.service` must use `%h`.

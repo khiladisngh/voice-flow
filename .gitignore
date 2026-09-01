@@ -8,4 +8,25 @@ wheels/
 
 # Virtual environments
 .venv
+
+# Agent scratch workspace
 .superpowers/
+
+# Tooling caches
+.ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Built documentation
+site/
+
+# Recorded audio must never be committed
+*.wav
+
+# Zensical build cache
+.cache/
+
+# Node tooling (prettier)
+node_modules/

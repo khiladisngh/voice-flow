@@ -1,11 +1,22 @@
+# Voice Flow systemd user unit.
+#
+# The two paths below assume the repository sits at ~/voice-flow. Rather than
+# editing them by hand, install with the sed one-liner from the README, which
+# rewrites both lines to wherever you actually cloned:
+#
+#   sed "s|^WorkingDirectory=.*|WorkingDirectory=$PWD|; \
+#        s|^ExecStart=.*|ExecStart=$PWD/voice-flow.sh daemon|" \
+#     voice-flow.service > ~/.config/systemd/user/voice-flow.service
+#
 [Unit]
 Description=Voice Flow Local Dictation Daemon (CUDA + Faster Whisper + Ollama)
+Documentation=https://khiladisngh.github.io/voice-flow/
 After=network.target sound.target
 
 [Service]
 Type=simple
-WorkingDirectory=%h/Dev/tools/voice-flow
-ExecStart=%h/Dev/tools/voice-flow/voice-flow.sh daemon
+WorkingDirectory=%h/voice-flow
+ExecStart=%h/voice-flow/voice-flow.sh daemon
 Restart=on-failure
 RestartSec=3
 PassEnvironment=WAYLAND_DISPLAY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS

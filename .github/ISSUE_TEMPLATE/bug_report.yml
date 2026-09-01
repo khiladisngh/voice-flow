@@ -1,0 +1,104 @@
+name: Bug report
+description: Report something that does not work as documented.
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to file a report.
+
+        Voice Flow runs entirely offline against your own hardware, so please
+        include the environment details below — most reports are resolved from
+        them alone.
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: Describe the actual behaviour you observed.
+      placeholder: Holding Right Ctrl + Right Alt records, but nothing is pasted.
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Exact steps, including any CLI commands you ran.
+      value: |
+        1. Start the daemon with `voice-flow daemon`
+        2. Hold Right Ctrl + Right Alt and speak
+        3. Release the keys
+        4. See the failure
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behaviour
+      description: What did you expect to happen instead?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: desktop
+    attributes:
+      label: Desktop environment
+      options:
+        - KDE Plasma
+        - GNOME
+        - Sway
+        - Hyprland
+        - Other
+    validations:
+      required: true
+
+  - type: input
+    id: distro
+    attributes:
+      label: Distribution and kernel
+      placeholder: Fedora 44, 7.1.10-200.fc44.x86_64
+    validations:
+      required: true
+
+  - type: input
+    id: gpu
+    attributes:
+      label: GPU and driver
+      description: Write "CPU only" if you run without CUDA.
+      placeholder: NVIDIA RTX 3070, driver 580.95
+    validations:
+      required: true
+
+  - type: input
+    id: version
+    attributes:
+      label: voice-flow version
+      description: Output of `voice-flow --version`.
+      placeholder: 0.1.0
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Daemon logs
+      description: Output of `journalctl --user -u voice-flow -n 50`.
+      render: shell
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: prerequisites
+    attributes:
+      label: Prerequisites
+      description: Confirm the environment requirements before filing.
+      options:
+        - label: My user is in the `input` group (`id -nG | grep input`) and I have logged out and back in since being added.
+          required: true
+        - label: "`pw-record` and `wl-copy` are installed and on my `PATH`."
+          required: true
+        - label: I searched existing issues and this is not a duplicate.
+          required: true

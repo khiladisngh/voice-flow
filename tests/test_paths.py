@@ -7,7 +7,9 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import os
 import stat
 from pathlib import Path
-from voice_flow.paths import get_runtime_dir, get_audio_path, get_pid_file, get_socket_path
+
+from voice_flow.paths import get_audio_path, get_pid_file, get_runtime_dir, get_socket_path
+
 
 def test_runtime_dir_permissions_and_structure(tmp_path, monkeypatch):
     test_xdg = tmp_path / "run_user"
@@ -37,20 +39,24 @@ def test_runtime_dir_permissions_and_structure(tmp_path, monkeypatch):
     socket_path = get_socket_path()
     assert socket_path == rt_dir / "daemon.sock"
 
+
 def test_runtime_dir_fallback_without_xdg(monkeypatch, tmp_path):
     monkeypatch.delenv("XDG_RUNTIME_DIR", raising=False)
     monkeypatch.setattr(os, "getuid", lambda: 12345)
 
-    # To avoid permission error creating /run/user/12345, we mock Path creation or verify Path logic
-    fake_run = tmp_path / "run_user_fallback"
-    # Intercept Path so /run/user/12345 is redirected or test the string resolution
-    # Instead, we can verify get_runtime_dir() attempts Path(f"/run/user/{os.getuid()}") / "voice-flow"
+    # /run/user/12345 is not creatable in a test, so assert on the resolved path
+    # while stubbing out the filesystem calls.
     from unittest.mock import patch
-    with patch("voice_flow.paths.Path.mkdir") as mock_mkdir, patch("voice_flow.paths.Path.chmod") as mock_chmod:
+
+    with (
+        patch("voice_flow.paths.Path.mkdir") as mock_mkdir,
+        patch("voice_flow.paths.Path.chmod") as mock_chmod,
+    ):
         rt_dir = get_runtime_dir()
         assert rt_dir == Path("/run/user/12345/voice-flow")
         mock_mkdir.assert_called_once_with(mode=0o700, parents=True, exist_ok=True)
         mock_chmod.assert_called_once_with(0o700)
+
 
 def test_runtime_dir_enforces_0700_on_existing_dir(tmp_path, monkeypatch):
     test_xdg = tmp_path / "run_user"
@@ -64,6 +70,7 @@ def test_runtime_dir_enforces_0700_on_existing_dir(tmp_path, monkeypatch):
     resolved = get_runtime_dir()
     assert resolved == rt_dir
     assert stat.S_IMODE(resolved.stat().st_mode) == 0o700
+
 
 def test_recorder_uses_isolated_paths(tmp_path, monkeypatch):
     test_xdg = tmp_path / "run_user"

@@ -3,16 +3,17 @@ import signal
 import subprocess
 import time
 from pathlib import Path
-from typing import Optional
+
 from voice_flow.paths import get_audio_path, get_pid_file
 
 PID_FILE = get_pid_file()
 DEFAULT_AUDIO_PATH = str(get_audio_path())
 
+
 class AudioRecorder:
     def __init__(
         self,
-        audio_path: Optional[str] = None,
+        audio_path: str | None = None,
         sample_rate: int = 16000,
         channels: int = 1,
         sound_feedback: bool = True,
@@ -29,15 +30,27 @@ class AudioRecorder:
         self.channels = channels
         self.sound_feedback = sound_feedback
         self.notifications = notifications
+
     @property
     def pid_file(self) -> Path:
         return get_pid_file()
+
     def notify(self, title: str, message: str, expire_ms: int = 1500):
         if not self.notifications:
             return
         try:
             subprocess.Popen(
-                ["notify-send", "-a", "Voice Flow", "-t", str(expire_ms), "-h", "int:transient:1", title, message],
+                [
+                    "notify-send",
+                    "-a",
+                    "Voice Flow",
+                    "-t",
+                    str(expire_ms),
+                    "-h",
+                    "int:transient:1",
+                    title,
+                    message,
+                ],
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
             )
@@ -78,6 +91,7 @@ class AudioRecorder:
             if self.pid_file.exists():
                 self.pid_file.unlink(missing_ok=True)
             return False
+
     def start(self, session_id: str = "current") -> bool:
         if self.is_recording():
             return False
@@ -106,8 +120,10 @@ class AudioRecorder:
         proc = subprocess.Popen(
             [
                 "pw-record",
-                "--channels", str(self.channels),
-                "--rate", str(self.sample_rate),
+                "--channels",
+                str(self.channels),
+                "--rate",
+                str(self.sample_rate),
                 str(self.current_audio_path),
             ],
             stdout=subprocess.DEVNULL,
@@ -118,7 +134,8 @@ class AudioRecorder:
         self.play_sound("audio-volume-change")
         self.notify("🎙️ Voice Flow", "Listening...", expire_ms=10000)
         return True
-    def stop(self, timeout: float = 1.0) -> Optional[str]:
+
+    def stop(self, timeout: float = 1.0) -> str | None:
         if not self.pid_file.exists():
             return None
 

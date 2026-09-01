@@ -43,14 +43,15 @@ import stat
 from pathlib import Path
 from voice_flow.paths import get_runtime_dir, get_audio_path, get_pid_file, get_socket_path
 
+
 def test_runtime_dir_permissions_and_structure(tmp_path, monkeypatch):
     test_xdg = tmp_path / "run_user"
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(test_xdg))
-    
+
     rt_dir = get_runtime_dir()
     assert rt_dir.exists()
     assert rt_dir == test_xdg / "voice-flow"
-    
+
     # Verify mode is 0700 (user rwx only)
     mode = stat.S_IMODE(rt_dir.stat().st_mode)
     assert mode == 0o700
@@ -78,6 +79,7 @@ Expected: FAIL with `ModuleNotFoundError: No module named 'voice_flow.paths'`
 import os
 from pathlib import Path
 
+
 def get_runtime_dir() -> Path:
     base = os.environ.get("XDG_RUNTIME_DIR")
     if not base:
@@ -86,11 +88,14 @@ def get_runtime_dir() -> Path:
     path.mkdir(mode=0o700, parents=True, exist_ok=True)
     return path
 
+
 def get_audio_path(session_id: str = "current") -> Path:
     return get_runtime_dir() / f"record_{session_id}.wav"
 
+
 def get_pid_file() -> Path:
     return get_runtime_dir() / "recorder.pid"
+
 
 def get_socket_path() -> Path:
     return get_runtime_dir() / "daemon.sock"
@@ -126,17 +131,18 @@ import os
 from voice_flow.recorder import AudioRecorder
 from voice_flow.paths import get_audio_path
 
+
 def test_recorder_lifecycle_flushes_process(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
     recorder = AudioRecorder(sound_feedback=False, notifications=False)
-    
+
     started = recorder.start("unit_test")
     assert started is True
     assert recorder.is_recording() is True
-    
+
     time.sleep(0.5)
     audio_file = recorder.stop()
-    
+
     assert audio_file is not None
     assert os.path.exists(audio_file)
     assert os.path.getsize(audio_file) > 0
@@ -210,14 +216,15 @@ Expected: PASS
 # tests/test_injector.py
 from voice_flow.injector import TextInjector
 
+
 def test_injector_singleton_device_and_restore():
     injector = TextInjector(restore_clipboard=False)
     assert injector.ui is not None
-    
+
     # Test pasting does not destroy or close the persistent device
     injector.paste("Unit test paste string")
     assert injector.ui is not None
-    
+
     injector.close()
     assert injector.ui is None
 ```
@@ -236,6 +243,7 @@ import subprocess
 from typing import Optional
 import evdev
 from evdev import ecodes
+
 
 class TextInjector:
     def __init__(self, restore_clipboard: bool = True):
@@ -313,6 +321,7 @@ Expected: PASS
 # tests/test_hotkey.py
 from voice_flow.hotkey import GlobalHotkeyListener
 
+
 def test_hotkey_listener_initialization():
     listener = GlobalHotkeyListener(
         combo_keys=["KEY_RIGHTCTRL", "KEY_RIGHTALT"],
@@ -365,14 +374,15 @@ import threading
 from voice_flow.main import send_to_daemon
 from voice_flow.paths import get_socket_path
 
+
 def test_framed_socket_communication(tmp_path, monkeypatch):
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
     sock_path = get_socket_path()
-    
+
     server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     server.bind(str(sock_path))
     server.listen(1)
-    
+
     def server_worker():
         conn, _ = server.accept()
         with conn.makefile("r", encoding="utf-8") as f:
@@ -385,7 +395,7 @@ def test_framed_socket_communication(tmp_path, monkeypatch):
 
     t = threading.Thread(target=server_worker)
     t.start()
-    
+
     res = send_to_daemon({"action": "ping"})
     assert res.get("status") == "pong"
     t.join()
@@ -442,10 +452,11 @@ Expected: PASS
 # tests/test_cleaner.py
 from voice_flow.cleaner import TextCleaner
 
+
 def test_cleaner_uses_session_and_wraps_prompt():
     cleaner = TextCleaner()
     assert hasattr(cleaner, "session")
-    
+
     # Short text returns verbatim without network calls
     assert cleaner.clean("hi") == "hi"
 ```
@@ -461,8 +472,15 @@ Expected: FAIL with `AttributeError: 'TextCleaner' object has no attribute 'sess
 # voice_flow/cleaner.py
 import requests
 
+
 class TextCleaner:
-    def __init__(self, ollama_url: str = "http://localhost:11434/api/generate", model: str = "qwen2.5:1.5b", temperature: float = 0.1, timeout: float = 3.5):
+    def __init__(
+        self,
+        ollama_url: str = "http://localhost:11434/api/generate",
+        model: str = "qwen2.5:1.5b",
+        temperature: float = 0.1,
+        timeout: float = 3.5,
+    ):
         self.ollama_url = ollama_url
         self.model = model
         self.temperature = temperature

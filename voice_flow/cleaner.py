@@ -1,5 +1,4 @@
 import requests
-from typing import Optional
 
 SYSTEM_PROMPT = """You are a specialized speech-to-text post-processor.
 Your job is to convert spoken stream-of-consciousness text into polished, readable written text:
@@ -9,6 +8,7 @@ Your job is to convert spoken stream-of-consciousness text into polished, readab
 - Preserve the exact meaning, tone, and specific vocabulary of the speaker.
 - Do NOT add polite greetings, introductory phrases, or conversational commentary.
 - Return ONLY the finalized text, with no quotes or explanations."""
+
 
 class TextCleaner:
     def __init__(
@@ -23,6 +23,7 @@ class TextCleaner:
         self.temperature = temperature
         self.timeout = timeout
         self.session = requests.Session()
+
     def clean(self, raw_text: str) -> str:
         """Post-process speech text using local LLM with fallback to raw text."""
         if not raw_text:

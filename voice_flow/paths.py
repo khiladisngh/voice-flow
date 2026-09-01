@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 
+
 def get_runtime_dir() -> Path:
     """
     Resolve and create the secure runtime directory for voice-flow.
@@ -18,13 +19,16 @@ def get_runtime_dir() -> Path:
         pass
     return path
 
+
 def get_audio_path(session_id: str = "current") -> Path:
     """Return the path to a session's recorded audio wav file."""
     return get_runtime_dir() / f"record_{session_id}.wav"
 
+
 def get_pid_file() -> Path:
     """Return the path to the recorder PID file."""
     return get_runtime_dir() / "recorder.pid"
+
 
 def get_socket_path() -> Path:
     """Return the path to the daemon Unix domain socket."""

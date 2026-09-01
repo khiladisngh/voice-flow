@@ -1,9 +1,10 @@
-import time
-import threading
 import selectors
-from unittest.mock import MagicMock, patch, call
-import pytest
+import threading
+import time
+from unittest.mock import MagicMock, patch
+
 import evdev
+import pytest
 from evdev import ecodes
 
 from voice_flow.hotkey import GlobalHotkeyListener
@@ -42,23 +43,17 @@ def test_find_keyboards_excludes_helper_and_virtual_devices():
     mock_helper = MagicMock(spec=evdev.InputDevice)
     mock_helper.path = "/dev/input/event1"
     mock_helper.name = "XTest Virtual Pointer helper"
-    mock_helper.capabilities.return_value = {
-        ecodes.EV_KEY: [ecodes.KEY_RIGHTCTRL, ecodes.KEY_RIGHTALT]
-    }
+    mock_helper.capabilities.return_value = {ecodes.EV_KEY: [ecodes.KEY_RIGHTCTRL, ecodes.KEY_RIGHTALT]}
 
     mock_virtual = MagicMock(spec=evdev.InputDevice)
     mock_virtual.path = "/dev/input/event2"
     mock_virtual.name = "voice-flow-virtual-kb"
-    mock_virtual.capabilities.return_value = {
-        ecodes.EV_KEY: [ecodes.KEY_RIGHTCTRL, ecodes.KEY_RIGHTALT]
-    }
+    mock_virtual.capabilities.return_value = {ecodes.EV_KEY: [ecodes.KEY_RIGHTCTRL, ecodes.KEY_RIGHTALT]}
 
     mock_mouse = MagicMock(spec=evdev.InputDevice)
     mock_mouse.path = "/dev/input/event3"
     mock_mouse.name = "Optical Mouse"
-    mock_mouse.capabilities.return_value = {
-        ecodes.EV_KEY: [ecodes.KEY_LEFTMETA]
-    }
+    mock_mouse.capabilities.return_value = {ecodes.EV_KEY: [ecodes.KEY_LEFTMETA]}
 
     device_map = {
         "/dev/input/event0": mock_real,
@@ -130,7 +125,7 @@ def test_device_disconnect_cleanup_on_ioerror():
     mock_dev = MagicMock(spec=evdev.InputDevice)
     mock_dev.name = "Bluetooth Keyboard"
     mock_dev.path = "/dev/input/event5"
-    mock_dev.read.side_effect = IOError("Input/output error")
+    mock_dev.read.side_effect = OSError("Input/output error")
 
     mock_selector = MagicMock()
     key = MagicMock()
@@ -138,6 +133,7 @@ def test_device_disconnect_cleanup_on_ioerror():
 
     with patch.object(listener, "_find_keyboards", return_value=[mock_dev]):
         with patch("selectors.DefaultSelector", return_value=mock_selector):
+
             def stop_after_one(*args, **kwargs):
                 listener._running = False
                 return [(key, selectors.EVENT_READ)]
@@ -171,6 +167,7 @@ def test_dynamic_device_discovery():
 
     # First call returns initial_dev, second call returns initial_dev and new_dev
     find_call_count = 0
+
     def mock_find():
         nonlocal find_call_count
         find_call_count += 1
@@ -183,12 +180,14 @@ def test_dynamic_device_discovery():
         with patch("selectors.DefaultSelector", return_value=mock_selector):
             # Advance time so the 5.0s check triggers on the second iteration
             time_values = [100.0, 100.0, 106.0, 106.0, 106.0]
+
             def mock_time():
                 if time_values:
                     return time_values.pop(0)
                 return 110.0
 
             select_calls = 0
+
             def stop_loop(*args, **kwargs):
                 nonlocal select_calls
                 select_calls += 1
@@ -206,6 +205,7 @@ def test_dynamic_device_discovery():
             mock_selector.register.assert_any_call(initial_dev, selectors.EVENT_READ)
             # Verify new device was registered dynamically
             mock_selector.register.assert_any_call(new_dev, selectors.EVENT_READ)
+
 
 def test_concurrent_recording_state_transitions():
     """Verify rapid combo events trigger start/stop without race conditions."""
@@ -251,6 +251,7 @@ def test_concurrent_recording_state_transitions():
     # Verify no unhandled exceptions and valid state
     assert isinstance(listener._is_recording, bool)
 
+
 def test_dynamic_discovery_duplicate_devices_closed():
     """Verify duplicate instances of already-registered devices are closed and not re-registered."""
     listener = GlobalHotkeyListener()
@@ -268,6 +269,7 @@ def test_dynamic_discovery_duplicate_devices_closed():
     mock_selector.select.return_value = []
 
     find_call_count = 0
+
     def mock_find():
         nonlocal find_call_count
         find_call_count += 1
@@ -279,12 +281,14 @@ def test_dynamic_discovery_duplicate_devices_closed():
     with patch.object(listener, "_find_keyboards", side_effect=mock_find):
         with patch("selectors.DefaultSelector", return_value=mock_selector):
             time_values = [100.0, 100.0, 106.0, 106.0, 106.0]
+
             def mock_time():
                 if time_values:
                     return time_values.pop(0)
                 return 110.0
 
             select_calls = 0
+
             def stop_loop(*args, **kwargs):
                 nonlocal select_calls
                 select_calls += 1
@@ -320,6 +324,7 @@ def test_blocking_io_error_does_not_unregister_device():
 
     with patch.object(listener, "_find_keyboards", return_value=[mock_dev]):
         with patch("selectors.DefaultSelector", return_value=mock_selector):
+
             def stop_after_one(*args, **kwargs):
                 listener._running = False
                 return [(key, selectors.EVENT_READ)]
@@ -351,6 +356,7 @@ def test_all_devices_disconnected_clears_active_keys():
 
     with patch.object(listener, "_find_keyboards", return_value=[mock_dev]):
         with patch("selectors.DefaultSelector", return_value=mock_selector):
+
             def stop_after_one(*args, **kwargs):
                 listener._running = False
                 return [(key, selectors.EVENT_READ)]

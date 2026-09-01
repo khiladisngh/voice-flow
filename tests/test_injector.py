@@ -1,10 +1,11 @@
 from unittest.mock import MagicMock, call, patch
+
 import pytest
-import evdev
-from evdev import ecodes
+
 from voice_flow.injector import TextInjector
 
 
+@pytest.mark.uinput
 def test_injector_singleton_device_and_restore():
     injector = TextInjector(restore_clipboard=False)
     assert injector.ui is not None
@@ -20,8 +21,9 @@ def test_injector_singleton_device_and_restore():
     assert injector.ui is None
 
 
+@pytest.mark.uinput
 def test_injector_device_persistence_across_multiple_pastes():
-    with patch("voice_flow.injector.TextInjector._set_clipboard") as mock_set:
+    with patch("voice_flow.injector.TextInjector._set_clipboard"):
         injector = TextInjector(restore_clipboard=False)
         assert injector.ui is not None
         device_id = id(injector.ui)
@@ -38,6 +40,7 @@ def test_injector_device_persistence_across_multiple_pastes():
         assert injector.ui is None
 
 
+@pytest.mark.uinput
 def test_injector_close_is_idempotent():
     injector = TextInjector(restore_clipboard=False)
     assert injector.ui is not None
@@ -48,6 +51,7 @@ def test_injector_close_is_idempotent():
     assert injector.ui is None
 
 
+@pytest.mark.uinput
 def test_injector_reinitializes_if_device_is_none():
     injector = TextInjector(restore_clipboard=False)
     injector.close()
@@ -61,6 +65,7 @@ def test_injector_reinitializes_if_device_is_none():
         injector.close()
 
 
+@pytest.mark.uinput
 def test_injector_paste_empty_text_returns_false():
     injector = TextInjector(restore_clipboard=False)
     assert injector.paste("") is False
@@ -68,6 +73,7 @@ def test_injector_paste_empty_text_returns_false():
     injector.close()
 
 
+@pytest.mark.uinput
 def test_injector_paste_exception_resets_device():
     injector = TextInjector(restore_clipboard=False)
     assert injector.ui is not None
@@ -83,11 +89,13 @@ def test_injector_paste_exception_resets_device():
         mock_ui.close.assert_called_once()
 
 
+@pytest.mark.uinput
 def test_injector_clipboard_restore_window_and_success_condition():
-    with patch("voice_flow.injector.TextInjector._get_current_clipboard", return_value=b"old-data"), \
-         patch("voice_flow.injector.TextInjector._set_clipboard") as mock_set, \
-         patch("voice_flow.injector.time.sleep") as mock_sleep:
-        
+    with (
+        patch("voice_flow.injector.TextInjector._get_current_clipboard", return_value=b"old-data"),
+        patch("voice_flow.injector.TextInjector._set_clipboard") as mock_set,
+        patch("voice_flow.injector.time.sleep") as mock_sleep,
+    ):
         injector = TextInjector(restore_clipboard=True)
         # Mock ui so write succeeds
         mock_ui = MagicMock()
@@ -105,11 +113,13 @@ def test_injector_clipboard_restore_window_and_success_condition():
         injector.close()
 
 
+@pytest.mark.uinput
 def test_injector_clipboard_not_restored_on_failure():
-    with patch("voice_flow.injector.TextInjector._get_current_clipboard", return_value=b"old-data"), \
-         patch("voice_flow.injector.TextInjector._set_clipboard") as mock_set, \
-         patch("voice_flow.injector.time.sleep") as mock_sleep:
-        
+    with (
+        patch("voice_flow.injector.TextInjector._get_current_clipboard", return_value=b"old-data"),
+        patch("voice_flow.injector.TextInjector._set_clipboard") as mock_set,
+        patch("voice_flow.injector.time.sleep") as mock_sleep,
+    ):
         injector = TextInjector(restore_clipboard=True)
         # Mock ui write failure
         mock_ui = MagicMock()
@@ -127,6 +137,7 @@ def test_injector_clipboard_not_restored_on_failure():
         assert not any(c == call(0.35) for c in mock_sleep.call_args_list)
 
 
+@pytest.mark.uinput
 def test_injector_context_manager():
     with TextInjector(restore_clipboard=False) as injector:
         assert injector.ui is not None
@@ -134,6 +145,7 @@ def test_injector_context_manager():
         injector.ui.close = mock_close
     assert injector.ui is None
     mock_close.assert_called_once()
+
 
 def test_injector_init_failure_handled_gracefully():
     with patch("voice_flow.injector.evdev.UInput", side_effect=PermissionError("Permission denied")):

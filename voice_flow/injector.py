@@ -1,13 +1,14 @@
-import time
 import subprocess
-from typing import Optional
+import time
+
 import evdev
 from evdev import ecodes
+
 
 class TextInjector:
     def __init__(self, restore_clipboard: bool = True):
         self.restore_clipboard = restore_clipboard
-        self.ui: Optional[evdev.UInput] = None
+        self.ui: evdev.UInput | None = None
         self._init_uinput()
 
     def _init_uinput(self):
@@ -35,7 +36,7 @@ class TextInjector:
     def __del__(self):
         self.close()
 
-    def _get_current_clipboard(self) -> Optional[bytes]:
+    def _get_current_clipboard(self) -> bytes | None:
         try:
             res = subprocess.run(
                 ["wl-paste", "--no-newline"],

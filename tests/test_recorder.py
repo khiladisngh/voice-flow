@@ -1,9 +1,7 @@
 import os
-import signal
 import subprocess
 import time
 from pathlib import Path
-from unittest.mock import patch
 
 import pytest
 
@@ -11,6 +9,7 @@ from voice_flow.paths import get_audio_path, get_pid_file
 from voice_flow.recorder import AudioRecorder
 
 
+@pytest.mark.pipewire
 def test_recorder_lifecycle_flushes_process(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
     recorder = AudioRecorder(sound_feedback=False, notifications=False)
@@ -29,6 +28,7 @@ def test_recorder_lifecycle_flushes_process(monkeypatch, tmp_path):
     assert "record_unit_test.wav" in audio_file
 
 
+@pytest.mark.pipewire
 def test_recorder_start_already_recording(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
     recorder = AudioRecorder(sound_feedback=False, notifications=False)
@@ -101,6 +101,7 @@ def test_recorder_session_paths(monkeypatch, tmp_path):
     recorder.start("session_beta")
     assert "record_session_beta.wav" in str(recorder.current_audio_path)
     recorder.stop()
+
 
 def test_recorder_stop_corrupted_pid_file(monkeypatch, tmp_path):
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))

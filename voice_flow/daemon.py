@@ -1,19 +1,20 @@
-import os
-import sys
 import json
-import time
-import socket
 import signal
-from pathlib import Path
-from voice_flow.transcriber import Transcriber
+import socket
+import sys
+import time
+
 from voice_flow.cleaner import TextCleaner
-from voice_flow.injector import TextInjector
-from voice_flow.recorder import AudioRecorder
 from voice_flow.hotkey import GlobalHotkeyListener
+from voice_flow.injector import TextInjector
 from voice_flow.paths import get_runtime_dir, get_socket_path
+from voice_flow.recorder import AudioRecorder
+from voice_flow.transcriber import Transcriber
 
 SOCKET_DIR = get_runtime_dir()
 SOCKET_PATH = get_socket_path()
+
+
 class VoiceFlowDaemon:
     def __init__(self, config: dict):
         self.config = config
@@ -23,7 +24,9 @@ class VoiceFlowDaemon:
         audio_cfg = config.get("audio", {})
         hotkey_cfg = config.get("hotkey", {})
 
-        print(f"[Daemon] Initializing Transcriber on {stt_cfg.get('device', 'cuda')} ({stt_cfg.get('model_size', 'large-v3-turbo')})...")
+        print(
+            f"[Daemon] Initializing Transcriber on {stt_cfg.get('device', 'cuda')} ({stt_cfg.get('model_size', 'large-v3-turbo')})..."
+        )
         self.transcriber = Transcriber(
             model_size=stt_cfg.get("model_size", "large-v3-turbo"),
             device=stt_cfg.get("device", "cuda"),
@@ -74,7 +77,7 @@ class VoiceFlowDaemon:
         audio_file = self.recorder.stop()
         if audio_file:
             result = self.process_audio(audio_file)
-            print(f"[Daemon] Transcribed & Pasted: \"{result.get('cleaned')}\" ({result.get('total_ms')}ms)")
+            print(f'[Daemon] Transcribed & Pasted: "{result.get("cleaned")}" ({result.get("total_ms")}ms)')
 
     def process_audio(self, audio_path: str) -> dict:
         t0 = time.time()
@@ -103,6 +106,7 @@ class VoiceFlowDaemon:
             "clean_ms": round(t_clean * 1000, 1),
             "total_ms": round(total_ms, 1),
         }
+
     def _handle_signal(self, signum, frame):
         print(f"[Daemon] Received signal {signum}, shutting down gracefully...")
         self.stop()
@@ -136,7 +140,7 @@ class VoiceFlowDaemon:
                 pass
 
     def start_server(self):
-        socket_dir = get_runtime_dir()
+        get_runtime_dir()  # side effect: creates $XDG_RUNTIME_DIR/voice-flow at mode 0700
         socket_path = get_socket_path()
         if socket_path.exists():
             socket_path.unlink()

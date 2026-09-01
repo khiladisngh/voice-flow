@@ -1,10 +1,10 @@
 import json
-import os
 import signal
 import socket
 import threading
 import time
 from unittest.mock import MagicMock, patch
+
 import pytest
 
 from voice_flow.main import send_to_daemon

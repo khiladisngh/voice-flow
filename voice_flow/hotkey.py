@@ -1,35 +1,35 @@
-import time
-import threading
 import selectors
-from typing import List, Callable, Optional, Set
+import threading
+import time
+from collections.abc import Callable
+
 import evdev
 from evdev import ecodes
+
 
 class GlobalHotkeyListener:
     def __init__(
         self,
-        combo_keys: Optional[List[str]] = None,
+        combo_keys: list[str] | None = None,
         hold_threshold: float = 0.45,
-        on_start_record: Optional[Callable[[], None]] = None,
-        on_stop_record: Optional[Callable[[], None]] = None,
+        on_start_record: Callable[[], None] | None = None,
+        on_stop_record: Callable[[], None] | None = None,
     ):
         if combo_keys is None:
             combo_keys = ["KEY_RIGHTCTRL", "KEY_RIGHTALT"]
 
-        self.required_codes: Set[int] = {
-            getattr(ecodes, k) for k in combo_keys if hasattr(ecodes, k)
-        }
+        self.required_codes: set[int] = {getattr(ecodes, k) for k in combo_keys if hasattr(ecodes, k)}
         self.hold_threshold = hold_threshold
         self.on_start_record = on_start_record
         self.on_stop_record = on_stop_record
 
-        self._active_keys: Set[int] = set()
+        self._active_keys: set[int] = set()
         self._combo_active = False
         self._combo_press_time = 0.0
         self._is_recording = False
         self._tap_started_recording = False
         self._running = False
-        self._thread: Optional[threading.Thread] = None
+        self._thread: threading.Thread | None = None
         self._lock = threading.Lock()
         self._last_scan_time: float = 0.0
 
@@ -38,7 +38,7 @@ class GlobalHotkeyListener:
         with self._lock:
             return self._is_recording
 
-    def _find_keyboards(self) -> List[evdev.InputDevice]:
+    def _find_keyboards(self) -> list[evdev.InputDevice]:
         keyboards = []
         for path in evdev.list_devices():
             try:
@@ -58,7 +58,7 @@ class GlobalHotkeyListener:
     def _run_listener(self):
         selector = selectors.DefaultSelector()
         self._last_scan_time = time.time()
-        active_devices: List[evdev.InputDevice] = []
+        active_devices: list[evdev.InputDevice] = []
 
         devices = self._find_keyboards()
         for dev in devices:
@@ -94,7 +94,9 @@ class GlobalHotkeyListener:
                                     selector.register(dev, selectors.EVENT_READ)
                                     active_devices.append(dev)
                                     registered_paths.add(dev_path)
-                                    print(f"[Hotkey] Discovered and listening to keyboard: {dev.name} ({dev.path})")
+                                    print(
+                                        f"[Hotkey] Discovered and listening to keyboard: {dev.name} ({dev.path})"
+                                    )
                                 except Exception as e:
                                     print(f"[Hotkey] Failed to register {dev.name}: {e}")
                                     try:
@@ -115,8 +117,10 @@ class GlobalHotkeyListener:
                             dev_events = list(dev.read())
                         except BlockingIOError:
                             continue
-                        except (OSError, IOError) as e:
-                            print(f"[Hotkey] Device disconnected or read error ({getattr(dev, 'name', 'unknown')}): {e}")
+                        except OSError as e:
+                            print(
+                                f"[Hotkey] Device disconnected or read error ({getattr(dev, 'name', 'unknown')}): {e}"
+                            )
                             try:
                                 selector.unregister(dev)
                             except Exception:
@@ -157,7 +161,9 @@ class GlobalHotkeyListener:
                                             self._is_recording = True
                                             self._tap_started_recording = True
                                             if self.on_start_record:
-                                                threading.Thread(target=self.on_start_record, daemon=True).start()
+                                                threading.Thread(
+                                                    target=self.on_start_record, daemon=True
+                                                ).start()
                                         else:
                                             # Already recording -> this press begins the "toggle stop"
                                             self._tap_started_recording = False
@@ -173,7 +179,9 @@ class GlobalHotkeyListener:
                                             if self._is_recording:
                                                 self._is_recording = False
                                                 if self.on_stop_record:
-                                                    threading.Thread(target=self.on_stop_record, daemon=True).start()
+                                                    threading.Thread(
+                                                        target=self.on_stop_record, daemon=True
+                                                    ).start()
                                         else:
                                             # Quick tap release
                                             if not self._tap_started_recording:
@@ -181,7 +189,9 @@ class GlobalHotkeyListener:
                                                 if self._is_recording:
                                                     self._is_recording = False
                                                     if self.on_stop_record:
-                                                        threading.Thread(target=self.on_stop_record, daemon=True).start()
+                                                        threading.Thread(
+                                                            target=self.on_stop_record, daemon=True
+                                                        ).start()
                                             else:
                                                 # First tap: keep recording, clear flag so next tap stops
                                                 self._tap_started_recording = False

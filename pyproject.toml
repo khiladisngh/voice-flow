@@ -1,16 +1,53 @@
 [project]
 name = "voice-flow"
 version = "0.1.0"
-description = "Add your description here"
+description = "GPU-accelerated, fully offline voice dictation for Linux/Wayland — Whisper on CUDA, LLM cleanup, ~85 MB RAM"
 readme = "README.md"
 requires-python = ">=3.12"
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "Gishant Singh", email = "khiladisngh@users.noreply.github.com" }]
+keywords = [
+    "speech-to-text",
+    "dictation",
+    "whisper",
+    "wayland",
+    "linux",
+    "cuda",
+    "ollama",
+    "offline",
+    "privacy",
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: GPU :: NVIDIA CUDA",
+    "Intended Audience :: End Users/Desktop",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "Topic :: Utilities",
+]
 dependencies = [
     "evdev>=2.0.0",
     "faster-whisper>=1.2.1",
-    "nvidia-cublas-cu12>=12.9.2.10",
-    "nvidia-cudnn-cu12>=9.25.1.1",
     "requests>=2.34.2",
 ]
+
+[project.optional-dependencies]
+cuda = [
+    "nvidia-cublas-cu12>=12.9.2.10",
+    "nvidia-cudnn-cu12>=9.25.1.1",
+]
+
+[project.urls]
+Homepage = "https://github.com/khiladisngh/voice-flow"
+Documentation = "https://khiladisngh.github.io/voice-flow/"
+Repository = "https://github.com/khiladisngh/voice-flow"
+Issues = "https://github.com/khiladisngh/voice-flow/issues"
+Changelog = "https://github.com/khiladisngh/voice-flow/blob/main/CHANGELOG.md"
 
 [project.scripts]
 voice-flow = "voice_flow.main:main"
@@ -26,4 +63,68 @@ module-name = "voice_flow"
 [dependency-groups]
 dev = [
     "pytest>=9.1.1",
+    "pytest-cov>=7.0.0",
+    "ruff>=0.14.0",
+    "bump-my-version>=1.2.0",
 ]
+docs = [
+    "mkdocs-material>=9.6.0",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q --strict-markers"
+markers = [
+    "uinput: requires a writable /dev/uinput (skipped without the 'input' group)",
+    "pipewire: requires a live PipeWire session and pw-record",
+]
+
+[tool.coverage.run]
+source = ["voice_flow"]
+omit = ["voice_flow/transcriber.py"]
+
+[tool.ruff]
+line-length = 110
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "C4", "SIM"]
+ignore = [
+    "E501",   # line length is enforced by the formatter
+    "B904",   # raise ... from err — noise in thin wrappers
+    "SIM105", # contextlib.suppress over try/except/pass
+]
+
+[tool.ruff.lint.per-file-ignores]
+"tests/*" = ["B011", "SIM117"]
+
+[tool.bumpversion]
+current_version = "0.1.0"
+parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
+serialize = ["{major}.{minor}.{patch}"]
+search = "{current_version}"
+replace = "{new_version}"
+commit = true
+tag = true
+sign_tags = false
+tag_name = "v{new_version}"
+tag_message = "release: v{new_version}"
+message = "chore(release): bump version {current_version} -> {new_version}"
+allow_dirty = false
+
+[[tool.bumpversion.files]]
+filename = "pyproject.toml"
+search = 'version = "{current_version}"'
+replace = 'version = "{new_version}"'
+
+[[tool.bumpversion.files]]
+filename = "voice_flow/__init__.py"
+search = '__version__ = "{current_version}"'
+replace = '__version__ = "{new_version}"'
+
+[[tool.bumpversion.files]]
+filename = "CHANGELOG.md"
+search = "## [Unreleased]"
+replace = """## [Unreleased]
+
+## [{new_version}] - {now:%Y-%m-%d}"""

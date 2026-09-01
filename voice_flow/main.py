@@ -1,14 +1,14 @@
-import sys
-import os
 import json
-import time
 import socket
+import sys
 from pathlib import Path
-from voice_flow.recorder import AudioRecorder
+
 from voice_flow.paths import get_socket_path
+from voice_flow.recorder import AudioRecorder
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.json"
 SOCKET_PATH = get_socket_path()
+
 
 def load_config() -> dict:
     if CONFIG_PATH.exists():
@@ -17,6 +17,7 @@ def load_config() -> dict:
         except Exception:
             pass
     return {}
+
 
 def send_to_daemon(payload: dict, timeout: float = 15.0) -> dict:
     sock_path = get_socket_path()
@@ -35,10 +36,11 @@ def send_to_daemon(payload: dict, timeout: float = 15.0) -> dict:
     finally:
         client.close()
 
+
 def run_standalone_process(config: dict, audio_path: str):
-    from voice_flow.transcriber import Transcriber
     from voice_flow.cleaner import TextCleaner
     from voice_flow.injector import TextInjector
+    from voice_flow.transcriber import Transcriber
 
     stt_cfg = config.get("stt", {})
     cleaner_cfg = config.get("cleaner", {})
@@ -67,6 +69,7 @@ def run_standalone_process(config: dict, audio_path: str):
 
     return {"status": "ok", "raw": raw_text, "cleaned": final_text}
 
+
 def handle_toggle(config: dict):
     audio_cfg = config.get("audio", {})
     ui_cfg = config.get("ui", {})
@@ -88,7 +91,7 @@ def handle_toggle(config: dict):
         try:
             res = send_to_daemon({"action": "process", "audio_path": audio_file})
             print(f"Pasted: {res.get('cleaned')} ({res.get('total_ms')}ms)")
-        except (ConnectionError, socket.timeout, Exception) as e:
+        except (TimeoutError, ConnectionError, Exception):
             # Fallback to standalone mode if daemon is not running
             print("Daemon not running, processing standalone...")
             res = run_standalone_process(config, audio_file)
@@ -97,10 +100,13 @@ def handle_toggle(config: dict):
         recorder.start()
         print("Listening... (Press hotkey again to finish & paste)")
 
+
 def handle_daemon(config: dict):
     from voice_flow.daemon import VoiceFlowDaemon
+
     daemon = VoiceFlowDaemon(config)
     daemon.start_server()
+
 
 def main():
     config = load_config()
@@ -149,6 +155,7 @@ def main():
     else:
         print(f"Unknown command: {cmd}")
         print("Usage: voice-flow [toggle|record-start|record-stop|daemon|status]")
+
 
 if __name__ == "__main__":
     main()

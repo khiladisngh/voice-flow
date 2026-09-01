@@ -6,9 +6,6 @@ from pathlib import Path
 
 from voice_flow.paths import get_audio_path, get_pid_file
 
-PID_FILE = get_pid_file()
-DEFAULT_AUDIO_PATH = str(get_audio_path())
-
 
 class AudioRecorder:
     def __init__(

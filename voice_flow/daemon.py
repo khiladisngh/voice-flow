@@ -12,9 +12,6 @@ from voice_flow.paths import get_runtime_dir, get_socket_path
 from voice_flow.recorder import AudioRecorder
 from voice_flow.transcriber import Transcriber
 
-SOCKET_DIR = get_runtime_dir()
-SOCKET_PATH = get_socket_path()
-
 
 class VoiceFlowDaemon:
     def __init__(self, config: dict):

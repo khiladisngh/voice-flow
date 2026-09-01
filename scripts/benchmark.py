@@ -15,6 +15,7 @@ import statistics
 import subprocess
 import sys
 import tempfile
+import time
 import wave
 from pathlib import Path
 
@@ -73,6 +74,21 @@ def main() -> int:
         print("espeak-ng not found; install it to generate benchmark audio", file=sys.stderr)
         return 1
 
+    # The daemon already holds a Whisper model in VRAM. Loading a second one
+    # here exhausts an 8 GB card, so refuse up front with something actionable
+    # rather than dying on a CUDA OOM deep inside ctranslate2.
+    _rss, _pss, daemon_procs = rss_pss_mb("voice_flow.main daemon")
+    if daemon_procs:
+        print(
+            "The voice-flow daemon is running and already holds a Whisper model in\n"
+            "VRAM. Loading a second copy would exhaust the GPU. Stop it first:\n\n"
+            "    systemctl --user stop voice-flow\n"
+            "    .venv/bin/python scripts/benchmark.py\n"
+            "    systemctl --user start voice-flow\n",
+            file=sys.stderr,
+        )
+        return 1
+
     transcriber = Transcriber()
     cleaner = TextCleaner()
     cleaner.warm_up()
@@ -89,8 +105,6 @@ def main() -> int:
             transcriber.transcribe(str(path))  # discard warm-up run
             stt_ms, clean_ms = [], []
             for _ in range(REPS):
-                import time
-
                 t0 = time.perf_counter()
                 raw, _lang, _dur = transcriber.transcribe(str(path))
                 stt_ms.append((time.perf_counter() - t0) * 1000)
@@ -100,6 +114,53 @@ def main() -> int:
             s = statistics.median(stt_ms)
             c = statistics.median(clean_ms)
             print(f"{duration:>7.1f}s{s:>10.0f}ms{c:>11.0f}ms{s + c:>11.0f}ms")
+
+    print("\nInjection")
+    print("-" * 43)
+    print("uinput and the clipboard helpers are mocked, so this never writes")
+    print("your real clipboard. Measured separately below.")
+    try:
+        from unittest.mock import MagicMock, patch
+
+        from voice_flow.injector import TextInjector
+
+        for restore in (True, False):
+            with (
+                patch(
+                    "voice_flow.injector.evdev.UInput",
+                    side_effect=lambda *a, **k: MagicMock(),
+                ),
+                patch("voice_flow.injector.TextInjector._set_clipboard"),
+                patch(
+                    "voice_flow.injector.TextInjector._get_current_clipboard",
+                    return_value=b"previous",
+                ),
+            ):
+                inj = TextInjector(restore_clipboard=restore)
+                samples = []
+                for _ in range(REPS):
+                    t0 = time.perf_counter()
+                    inj.paste("benchmark payload")
+                    samples.append((time.perf_counter() - t0) * 1000)
+                inj.close()
+            label = "restore_clipboard=True " if restore else "restore_clipboard=False"
+            print(f"{label}  p50 {statistics.median(samples):>7.0f} ms")
+    except Exception as exc:  # noqa: BLE001 - a benchmark must not hard-fail
+        print(f"skipped ({exc.__class__.__name__})")
+
+    # Clipboard I/O, measured by writing the clipboard's own current contents
+    # back to it. Idempotent, so it cannot lose data even if it races the user.
+    if shutil.which("wl-copy") and shutil.which("wl-paste"):
+        current = subprocess.run(["wl-paste", "--no-newline"], capture_output=True).stdout
+        io_samples = []
+        for _ in range(REPS):
+            t0 = time.perf_counter()
+            subprocess.run(["wl-copy"], input=current, check=False)
+            subprocess.run(["wl-paste", "--no-newline"], capture_output=True)
+            io_samples.append((time.perf_counter() - t0) * 1000)
+        print(f"wl-copy + wl-paste       p50 {statistics.median(io_samples):>7.0f} ms")
+    else:
+        print("wl-clipboard not installed; skipping clipboard I/O measurement")
 
     print("\nMemory (sum over matching processes)")
     print("-" * 43)

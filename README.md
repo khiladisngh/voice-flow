@@ -28,20 +28,28 @@ numbers below.
 
 ## Benchmarks
 
-Measured on an NVIDIA RTX 3070 (Fedora, KDE Plasma 6, Python 3.12). Latency is
-the median of 5 warm runs per utterance; reproduce it with the script in
-[`docs/development.md`](https://khiladisngh.github.io/voice-flow/development/).
-Your numbers will differ with a different GPU, model size, or compute type.
+Measured on an NVIDIA RTX 3070 (Fedora, KDE Plasma 6, Python 3.12), median of
+5–7 warm runs. Reproduce all of it with
+[`scripts/benchmark.py`](scripts/benchmark.py) — stop the daemon first, since it
+already holds a Whisper model in VRAM. Your numbers will differ with another
+GPU, model size, or compute type.
 
-### Latency, end of speech to pasted text
+### Latency
 
-| Stage     | Engine                                  | 1.8 s clip  | 3.4 s clip  | 5.4 s clip  |
-| --------- | --------------------------------------- | ----------- | ----------- | ----------- |
-| Capture   | PipeWire (`pw-record`)                  | <5 ms       | <5 ms       | <5 ms       |
-| STT       | `whisper-large-v3-turbo` `int8_float16` | 330 ms      | 360 ms      | 378 ms      |
-| Cleanup   | `qwen2.5:1.5b` via Ollama               | 34 ms       | 58 ms       | 57 ms       |
-| Injection | `wl-copy` + `uinput`                    | ~15 ms      | ~15 ms      | ~15 ms      |
-| **Total** |                                         | **~380 ms** | **~435 ms** | **~450 ms** |
+| Stage            | Engine                                  | 1.8 s clip  | 3.4 s clip  | 5.4 s clip  |
+| ---------------- | --------------------------------------- | ----------- | ----------- | ----------- |
+| Capture          | PipeWire (`pw-record`)                  | <5 ms       | <5 ms       | <5 ms       |
+| STT              | `whisper-large-v3-turbo` `int8_float16` | 352 ms      | 430 ms      | 478 ms      |
+| Cleanup          | `qwen2.5:1.5b` via Ollama               | 35 ms       | 67 ms       | 74 ms       |
+| Injection        | `wl-copy` + `uinput` Ctrl+V             | ~125 ms     | ~125 ms     | ~125 ms     |
+| **Text appears** |                                         | **~510 ms** | **~620 ms** | **~680 ms** |
+
+Injection is two numbers, not one. `paste()` delivers Ctrl+V after ~125 ms, then
+**sleeps 350 ms before restoring your previous clipboard** — so the daemon is
+busy for ~555 ms even though your text landed at ~125 ms. The row above is time
+until text is visible, which is what you actually feel. Set
+`ui.restore_clipboard` to `false` and the tail disappears at the cost of
+Voice Flow keeping the transcript on your clipboard.
 
 ### Memory, measured with `/proc/<pid>/smaps_rollup`
 

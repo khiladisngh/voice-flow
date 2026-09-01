@@ -22,7 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - `scripts/benchmark.py` reproduces every published latency and memory figure from synthesized speech.
-- `VOICE_FLOW_TEST_NO_HARDWARE=1` makes a developer machine collect exactly what CI collects.
+- The test suite is now hermetic: it never opens `/dev/uinput`, synthesizes a keystroke, writes the clipboard, or spawns `pw-record`, so CI runs the full suite instead of a subset. Previously running `pytest` pasted into the developer's focused window and overwrote their clipboard.
 
 ## [0.1.0] - 2026-09-02
 

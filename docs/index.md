@@ -21,18 +21,26 @@ machine.
 
 ## Benchmarks
 
-Measured on an NVIDIA RTX 3070 (Fedora, KDE Plasma 6, Wayland, Python 3.12).
-Latency is the median of 5 warm runs per utterance.
+Measured on an NVIDIA RTX 3070 (Fedora, KDE Plasma 6, Wayland, Python 3.12),
+median of 5–7 warm runs. Reproduce with `scripts/benchmark.py`.
 
-### Latency, end of speech to pasted text
+### Latency
 
-| Stage          | Engine                                   | 1.8 s clip  | 3.4 s clip  | 5.4 s clip  |
-| -------------- | ---------------------------------------- | ----------- | ----------- | ----------- |
-| Capture        | PipeWire (`pw-record`)                   | <5 ms       | <5 ms       | <5 ms       |
-| Speech-to-text | `whisper-large-v3-turbo`, `int8_float16` | 330 ms      | 360 ms      | 378 ms      |
-| Cleanup        | `qwen2.5:1.5b` via Ollama                | 34 ms       | 58 ms       | 57 ms       |
-| Injection      | `wl-copy` + `uinput`                     | ~15 ms      | ~15 ms      | ~15 ms      |
-| **Total**      |                                          | **~380 ms** | **~435 ms** | **~450 ms** |
+| Stage            | Engine                                   | 1.8 s clip  | 3.4 s clip  | 5.4 s clip  |
+| ---------------- | ---------------------------------------- | ----------- | ----------- | ----------- |
+| Capture          | PipeWire (`pw-record`)                   | <5 ms       | <5 ms       | <5 ms       |
+| Speech-to-text   | `whisper-large-v3-turbo`, `int8_float16` | 352 ms      | 430 ms      | 478 ms      |
+| Cleanup          | `qwen2.5:1.5b` via Ollama                | 35 ms       | 67 ms       | 74 ms       |
+| Injection        | `wl-copy` + `uinput` Ctrl+V              | ~125 ms     | ~125 ms     | ~125 ms     |
+| **Text appears** |                                          | **~510 ms** | **~620 ms** | **~680 ms** |
+
+!!! note "Injection is two numbers"
+
+    `TextInjector.paste()` delivers Ctrl+V after about 125 ms, then sleeps
+    350 ms before restoring your previous clipboard — so the call occupies the
+    daemon for roughly 555 ms even though the text landed at 125 ms. The table
+    reports time-until-text-visible. Setting `ui.restore_clipboard` to `false`
+    removes the tail, at the cost of leaving the transcript on your clipboard.
 
 ### Memory, from `/proc/<pid>/smaps_rollup`
 

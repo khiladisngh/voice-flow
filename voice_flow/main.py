@@ -6,8 +6,6 @@ import sys
 from voice_flow.paths import get_config_path, get_socket_path
 from voice_flow.recorder import AudioRecorder
 
-SOCKET_PATH = get_socket_path()
-
 
 def _restore_default_sigpipe() -> None:
     """Exit quietly when stdout closes, the way Unix CLIs are expected to.

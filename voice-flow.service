@@ -4,10 +4,11 @@ After=network.target sound.target
 
 [Service]
 Type=simple
-WorkingDirectory=/home/gishant-singh/Dev/tools/voice-flow
-ExecStart=/home/gishant-singh/Dev/tools/voice-flow/voice-flow.sh daemon
+WorkingDirectory=%h/Dev/tools/voice-flow
+ExecStart=%h/Dev/tools/voice-flow/voice-flow.sh daemon
 Restart=on-failure
 RestartSec=3
+PassEnvironment=WAYLAND_DISPLAY XDG_RUNTIME_DIR DBUS_SESSION_BUS_ADDRESS
 Environment=PYTHONUNBUFFERED=1
 
 [Install]

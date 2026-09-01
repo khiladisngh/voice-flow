@@ -54,8 +54,13 @@ uv sync --extra cuda
 # Pull the cleanup model
 ollama pull qwen2.5:1.5b
 
-# Install and start the user service
-cp voice-flow.service ~/.config/systemd/user/
+# Install and start the user service. The sed rewrites the unit's paths to
+# wherever you cloned, so the repository can live anywhere.
+mkdir -p ~/.config/systemd/user
+sed "s|^WorkingDirectory=.*|WorkingDirectory=$PWD|; \
+     s|^ExecStart=.*|ExecStart=$PWD/voice-flow.sh daemon|" \
+  voice-flow.service > ~/.config/systemd/user/voice-flow.service
+systemctl --user daemon-reload
 systemctl --user enable --now voice-flow
 ```
 

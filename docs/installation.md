@@ -119,21 +119,25 @@ If you would rather not run Ollama, set `cleaner.enabled` to `false` in
 
 ## 6. Install the systemd user service
 
-The repository ships `voice-flow.service`, which uses `%h` for your home
-directory rather than a hardcoded path.
+The repository ships `voice-flow.service`. Its `WorkingDirectory` and
+`ExecStart` default to `%h/voice-flow`, so rather than editing the unit by
+hand, install it through `sed` and let it point at your actual checkout:
 
 ```bash
 mkdir -p ~/.config/systemd/user
-cp voice-flow.service ~/.config/systemd/user/
+sed "s|^WorkingDirectory=.*|WorkingDirectory=$PWD|; \
+     s|^ExecStart=.*|ExecStart=$PWD/voice-flow.sh daemon|" \
+  voice-flow.service > ~/.config/systemd/user/voice-flow.service
 systemctl --user daemon-reload
 systemctl --user enable --now voice-flow
 ```
 
-!!! note "Clone location"
-The shipped unit expects the checkout at `%h/Dev/tools/voice-flow`. If you
-cloned elsewhere, edit `WorkingDirectory` and `ExecStart` in
-`~/.config/systemd/user/voice-flow.service` to match, then run
-`systemctl --user daemon-reload`.
+!!! note "Why `sed` instead of `cp`"
+
+    Run the command from inside the clone, so `$PWD` is the repository root.
+    This keeps the unit correct whether you cloned to `~/voice-flow`,
+    `~/src/voice-flow`, or anywhere else. Everything else in the unit already
+    uses `%h`, never an absolute home path.
 
 Confirm the daemon is warm:
 

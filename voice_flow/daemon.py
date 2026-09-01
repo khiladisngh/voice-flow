@@ -149,7 +149,10 @@ class VoiceFlowDaemon:
         self.register_signal_handlers()
         try:
             while True:
-                conn, _ = self.server.accept()
+                try:
+                    conn, _ = self.server.accept()
+                except OSError:
+                    break
                 try:
                     with conn.makefile("r", encoding="utf-8") as f:
                         line = f.readline()

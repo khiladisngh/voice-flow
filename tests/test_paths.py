@@ -1,0 +1,81 @@
+import sys
+from pathlib import Path
+
+# Ensure project root takes precedence over any installed stub
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import os
+import stat
+from pathlib import Path
+from voice_flow.paths import get_runtime_dir, get_audio_path, get_pid_file, get_socket_path
+
+def test_runtime_dir_permissions_and_structure(tmp_path, monkeypatch):
+    test_xdg = tmp_path / "run_user"
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(test_xdg))
+
+    rt_dir = get_runtime_dir()
+    assert rt_dir.exists()
+    assert rt_dir == test_xdg / "voice-flow"
+
+    # Verify mode is 0700 (user rwx only)
+    mode = stat.S_IMODE(rt_dir.stat().st_mode)
+    assert mode == 0o700
+
+    # Test custom session audio path
+    audio_path = get_audio_path("test-123")
+    assert audio_path.parent == rt_dir
+    assert audio_path.name == "record_test-123.wav"
+
+    # Test default session audio path
+    default_audio = get_audio_path()
+    assert default_audio.parent == rt_dir
+    assert default_audio.name == "record_current.wav"
+
+    pid_file = get_pid_file()
+    assert pid_file == rt_dir / "recorder.pid"
+
+    socket_path = get_socket_path()
+    assert socket_path == rt_dir / "daemon.sock"
+
+def test_runtime_dir_fallback_without_xdg(monkeypatch, tmp_path):
+    monkeypatch.delenv("XDG_RUNTIME_DIR", raising=False)
+    monkeypatch.setattr(os, "getuid", lambda: 12345)
+
+    # To avoid permission error creating /run/user/12345, we mock Path creation or verify Path logic
+    fake_run = tmp_path / "run_user_fallback"
+    # Intercept Path so /run/user/12345 is redirected or test the string resolution
+    # Instead, we can verify get_runtime_dir() attempts Path(f"/run/user/{os.getuid()}") / "voice-flow"
+    from unittest.mock import patch
+    with patch("voice_flow.paths.Path.mkdir") as mock_mkdir, patch("voice_flow.paths.Path.chmod") as mock_chmod:
+        rt_dir = get_runtime_dir()
+        assert rt_dir == Path("/run/user/12345/voice-flow")
+        mock_mkdir.assert_called_once_with(mode=0o700, parents=True, exist_ok=True)
+        mock_chmod.assert_called_once_with(0o700)
+
+def test_runtime_dir_enforces_0700_on_existing_dir(tmp_path, monkeypatch):
+    test_xdg = tmp_path / "run_user"
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(test_xdg))
+    rt_dir = test_xdg / "voice-flow"
+    rt_dir.mkdir(parents=True, mode=0o755)
+    # Intentionally set mode to 0755
+    rt_dir.chmod(0o755)
+    assert stat.S_IMODE(rt_dir.stat().st_mode) == 0o755
+
+    resolved = get_runtime_dir()
+    assert resolved == rt_dir
+    assert stat.S_IMODE(resolved.stat().st_mode) == 0o700
+
+def test_recorder_uses_isolated_paths(tmp_path, monkeypatch):
+    test_xdg = tmp_path / "run_user"
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(test_xdg))
+    from voice_flow.recorder import AudioRecorder
+
+    rec = AudioRecorder(audio_path="auto")
+    assert rec.audio_path == str(test_xdg / "voice-flow" / "record_current.wav")
+    assert rec.pid_file == test_xdg / "voice-flow" / "recorder.pid"
+    assert "/dev/shm" not in rec.audio_path
+    assert "/dev/shm" not in str(rec.pid_file)
+
+    rec_default = AudioRecorder()
+    assert rec_default.audio_path == str(test_xdg / "voice-flow" / "record_current.wav")
+    assert rec_default.pid_file == test_xdg / "voice-flow" / "recorder.pid"

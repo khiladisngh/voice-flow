@@ -9,10 +9,10 @@ from voice_flow.cleaner import TextCleaner
 from voice_flow.injector import TextInjector
 from voice_flow.recorder import AudioRecorder
 from voice_flow.hotkey import GlobalHotkeyListener
+from voice_flow.paths import get_runtime_dir, get_socket_path
 
-SOCKET_DIR = Path.home() / ".cache" / "voice-flow"
-SOCKET_PATH = SOCKET_DIR / "daemon.sock"
-
+SOCKET_DIR = get_runtime_dir()
+SOCKET_PATH = get_socket_path()
 class VoiceFlowDaemon:
     def __init__(self, config: dict):
         self.config = config
@@ -40,8 +40,9 @@ class VoiceFlowDaemon:
             )
 
         self.injector = TextInjector(restore_clipboard=ui_cfg.get("restore_clipboard", True))
+        temp_file = audio_cfg.get("temp_file", "auto")
         self.recorder = AudioRecorder(
-            audio_path=audio_cfg.get("temp_file", "/dev/shm/voice_flow_record.wav"),
+            audio_path=None if temp_file == "auto" else temp_file,
             sample_rate=audio_cfg.get("sample_rate", 16000),
             channels=audio_cfg.get("channels", 1),
             sound_feedback=ui_cfg.get("sound_feedback", True),
@@ -103,15 +104,15 @@ class VoiceFlowDaemon:
         }
 
     def start_server(self):
-        SOCKET_DIR.mkdir(parents=True, exist_ok=True)
-        if SOCKET_PATH.exists():
-            SOCKET_PATH.unlink()
+        socket_dir = get_runtime_dir()
+        socket_path = get_socket_path()
+        if socket_path.exists():
+            socket_path.unlink()
 
         server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        server.bind(str(SOCKET_PATH))
+        server.bind(str(socket_path))
         server.listen(5)
-        print(f"[Daemon] Listening on Unix socket: {SOCKET_PATH}")
-
+        print(f"[Daemon] Listening on Unix socket: {socket_path}")
         try:
             while True:
                 conn, _ = server.accept()
@@ -147,6 +148,7 @@ class VoiceFlowDaemon:
         finally:
             if self.hotkey_listener:
                 self.hotkey_listener.stop()
-            if SOCKET_PATH.exists():
-                SOCKET_PATH.unlink()
+            socket_path = get_socket_path()
+            if socket_path.exists():
+                socket_path.unlink()
             server.close()

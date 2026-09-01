@@ -19,7 +19,7 @@
   "audio": {
     "sample_rate": 16000,
     "channels": 1,
-    "temp_file": "/dev/shm/voice_flow_record.wav"
+    "temp_file": "auto"
   },
   "ui": {
     "sound_feedback": true,

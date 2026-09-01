@@ -4,25 +4,32 @@ import subprocess
 import time
 from pathlib import Path
 from typing import Optional
+from voice_flow.paths import get_audio_path, get_pid_file
 
-PID_FILE = Path("/dev/shm/voice_flow_record.pid")
-DEFAULT_AUDIO_PATH = "/dev/shm/voice_flow_record.wav"
+PID_FILE = get_pid_file()
+DEFAULT_AUDIO_PATH = str(get_audio_path())
 
 class AudioRecorder:
     def __init__(
         self,
-        audio_path: str = DEFAULT_AUDIO_PATH,
+        audio_path: Optional[str] = None,
         sample_rate: int = 16000,
         channels: int = 1,
         sound_feedback: bool = True,
         notifications: bool = True,
     ):
-        self.audio_path = audio_path
+        if audio_path is None or audio_path == "auto":
+            self.audio_path = str(get_audio_path())
+        else:
+            self.audio_path = str(audio_path)
         self.sample_rate = sample_rate
         self.channels = channels
         self.sound_feedback = sound_feedback
         self.notifications = notifications
 
+    @property
+    def pid_file(self) -> Path:
+        return get_pid_file()
     def notify(self, title: str, message: str, expire_ms: int = 1500):
         if not self.notifications:
             return
@@ -52,17 +59,16 @@ class AudioRecorder:
                     pass
 
     def is_recording(self) -> bool:
-        if not PID_FILE.exists():
+        if not self.pid_file.exists():
             return False
         try:
-            pid = int(PID_FILE.read_text().strip())
+            pid = int(self.pid_file.read_text().strip())
             os.kill(pid, 0)
             return True
         except (ValueError, ProcessLookupError, PermissionError):
-            if PID_FILE.exists():
-                PID_FILE.unlink(missing_ok=True)
+            if self.pid_file.exists():
+                self.pid_file.unlink(missing_ok=True)
             return False
-
     def start(self) -> bool:
         if self.is_recording():
             return False
@@ -83,22 +89,22 @@ class AudioRecorder:
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
         )
-        PID_FILE.write_text(str(proc.pid))
+        self.pid_file.write_text(str(proc.pid))
         self.play_sound("audio-volume-change")
         self.notify("🎙️ Voice Flow", "Listening...", expire_ms=10000)
         return True
 
     def stop(self) -> Optional[str]:
-        if not PID_FILE.exists():
+        if not self.pid_file.exists():
             return None
 
         try:
-            pid = int(PID_FILE.read_text().strip())
+            pid = int(self.pid_file.read_text().strip())
             os.kill(pid, signal.SIGINT)
         except Exception:
             pass
 
-        PID_FILE.unlink(missing_ok=True)
+        self.pid_file.unlink(missing_ok=True)
 
         # Wait briefly for pw-record to close wav header cleanly
         for _ in range(20):

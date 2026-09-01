@@ -8,25 +8,43 @@ window has focus — no cloud, no account, no telemetry.
 ## Why
 
 Commercial dictation apps ship an Electron shell, a login screen, and a
-round-trip to someone else's GPU. Voice Flow replaces roughly 2 GB of that with
-an ~85 MB resident daemon that keeps a Whisper model warm in VRAM and answers in
-about 200 ms end-to-end. Everything — capture, transcription, cleanup, and
-injection — happens on your machine.
+round-trip to someone else's GPU. Voice Flow does the whole job locally: a
+daemon that keeps a Whisper model warm in VRAM and answers in under half a
+second. Capture, transcription, cleanup, and injection all happen on your
+machine.
+
+!!! warning "This is not a memory optimisation"
+
+    Running inference locally costs about as much host RAM as a cloud client,
+    and adds ~2.4 GB of VRAM on top. The wins are privacy, offline operation,
+    and no subscription — not footprint.
 
 ## Benchmarks
 
-Measured on an NVIDIA RTX 3070 (Fedora, KDE Plasma 6, Wayland).
+Measured on an NVIDIA RTX 3070 (Fedora, KDE Plasma 6, Wayland, Python 3.12).
+Latency is the median of 5 warm runs per utterance.
 
-| Component      | Engine                                   | Latency     | Footprint      |
-| -------------- | ---------------------------------------- | ----------- | -------------- |
-| Capture        | PipeWire (`pw-record`)                   | <5 ms       | 0 MB           |
-| Speech-to-text | `whisper-large-v3-turbo`, `int8_float16` | ~120 ms     | ~1.1 GB VRAM   |
-| Cleanup        | `qwen2.5:1.5b` via Ollama                | 66 ms       | ~1.2 GB VRAM   |
-| Injection      | `wl-copy` + `uinput`                     | ~15 ms      | 0 MB           |
-| **Total**      |                                          | **~200 ms** | **~85 MB RAM** |
+### Latency, end of speech to pasted text
 
-The RAM figure is the resident daemon process; the VRAM figures are models held
-warm so that no load cost is paid per utterance.
+| Stage          | Engine                                   | 1.8 s clip  | 3.4 s clip  | 5.4 s clip  |
+| -------------- | ---------------------------------------- | ----------- | ----------- | ----------- |
+| Capture        | PipeWire (`pw-record`)                   | <5 ms       | <5 ms       | <5 ms       |
+| Speech-to-text | `whisper-large-v3-turbo`, `int8_float16` | 330 ms      | 360 ms      | 378 ms      |
+| Cleanup        | `qwen2.5:1.5b` via Ollama                | 34 ms       | 58 ms       | 57 ms       |
+| Injection      | `wl-copy` + `uinput`                     | ~15 ms      | ~15 ms      | ~15 ms      |
+| **Total**      |                                          | **~380 ms** | **~435 ms** | **~450 ms** |
+
+### Memory, from `/proc/<pid>/smaps_rollup`
+
+| Process                      | RSS     | PSS     | VRAM     |
+| ---------------------------- | ------- | ------- | -------- |
+| `voice-flow` daemon          | 1231 MB | 1221 MB | 1146 MiB |
+| `ollama` + `llama-server`    | 667 MB  | —       | 1296 MiB |
+| A commercial Electron client | 1977 MB | 1014 MB | ~60 MiB  |
+
+PSS charges shared pages once, which is the fair way to compare a 14-process
+Electron app against a single daemon. Voice Flow has the lower RSS and the
+slightly higher PSS.
 
 ## Features
 

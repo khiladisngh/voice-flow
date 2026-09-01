@@ -59,30 +59,24 @@ Full suite — run this before opening a pull request:
 .venv/bin/pytest
 ```
 
-CI-equivalent subset, which is what GitHub Actions runs on hosted runners with no
-sound card and no `/dev/uinput`:
+CI runs the same command on hosted runners with no sound card, no GPU, and no
+`/dev/uinput` — the suite is hermetic, so there is no separate CI subset and
+there are no hardware markers.
+
+**Any new test MUST NOT touch the real desktop session.** Patch the seam
+instead. An earlier version of these tests constructed real `TextInjector`
+objects, so `pytest` opened `/dev/uinput`, synthesized `Ctrl+V` into the focused
+window, and overwrote the developer's clipboard. `tests/conftest.py` now
+neutralises `evdev.UInput` and both clipboard helpers for the whole suite via an
+autouse fixture, and `fake_pw_record` stands in for `pw-record`.
+
+Verify your change kept the suite hermetic — the canary must survive:
 
 ```bash
-.venv/bin/pytest -m "not uinput and not pipewire"
+printf 'CANARY' | wl-copy
+.venv/bin/pytest -q >/dev/null 2>&1
+test "$(wl-paste)" = CANARY && echo "session intact"
 ```
-
-Two capability markers gate the hardware-dependent tests:
-
-| Marker     | Requires                                                |
-| ---------- | ------------------------------------------------------- |
-| `uinput`   | a writable `/dev/uinput`, i.e. `input` group membership |
-| `pipewire` | a live PipeWire session with `pw-record` available      |
-
-Both markers **self-skip** when the capability is absent, so a plain
-`.venv/bin/pytest` is safe on any machine — it will simply report skips instead of
-failures. The explicit `-m "not uinput and not pipewire"` deselection exists so CI
-fails loudly if a hardware test ever loses its marker and starts executing on a
-runner.
-
-**Any new test that touches a real device — audio capture, `/dev/input`,
-`/dev/uinput`, or the Wayland clipboard — MUST carry the matching marker.** Tests
-without a marker are expected to pass everywhere, deterministically, with the
-device layer mocked.
 
 ## Lint
 

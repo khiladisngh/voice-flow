@@ -24,12 +24,12 @@ uv run ruff format --check .
 uv run pytest
 ```
 
-> **CI cannot verify hardware paths.** GitHub Actions runs
-> `pytest -m "not uinput and not pipewire"`, which deselects the `uinput` and
-> `pipewire` tests. Run the full suite locally on a Wayland machine with
-> PipeWire and `input`-group access, and paste the result here.
+> **Keep the suite hermetic.** No test may open `/dev/uinput`, synthesize a
+> keystroke, write the clipboard, or spawn `pw-record` — CI runs the full suite
+> on a runner with none of that hardware. If you touched `tests/`, confirm the
+> clipboard canary in `CONTRIBUTING.md` still survives the run.
 
-- [ ] Full local suite run (`uv run pytest`) — paste the summary line:
+- [ ] Full suite run (`uv run pytest`) — paste the summary line:
 
 ```text
 

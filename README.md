@@ -14,19 +14,49 @@ Offline push-to-talk dictation for Linux/Wayland: speak, and clean text lands in
 
 ## Why
 
-Commercial dictation tools ship a ~2 GB Electron app that idles in the background, phones home with your audio, and still makes you wait on a network round trip. Voice Flow replaces that with a ~85 MB resident daemon that keeps the speech and cleanup models warm, turns a held hotkey into pasted text in roughly 200 ms, and never opens a socket to anyone but your own machine. It is a single Python package, a systemd user unit, and nothing else.
+Commercial dictation tools ship a multi-process Electron app that idles in the
+background, sends your audio to a vendor's servers, and makes you wait on a
+network round trip. Voice Flow does the same job entirely on your own machine:
+one Python daemon holding the speech model warm in VRAM, a kernel-level hotkey,
+and text pasted into the focused window in under half a second. No account, no
+subscription, no socket to anyone but localhost.
+
+**It is not a memory optimisation.** Running inference locally costs roughly
+what a cloud client costs in RAM, and adds ~2.4 GB of VRAM on top. What you get
+for that is privacy, offline operation, and no per-seat fee. See the honest
+numbers below.
 
 ## Benchmarks
 
-Measured on an NVIDIA RTX 3070. Your numbers will differ with a different GPU, model size, or compute type.
+Measured on an NVIDIA RTX 3070 (Fedora, KDE Plasma 6, Python 3.12). Latency is
+the median of 5 warm runs per utterance; reproduce it with the script in
+[`docs/development.md`](https://khiladisngh.github.io/voice-flow/development/).
+Your numbers will differ with a different GPU, model size, or compute type.
 
-| Component | Engine                                  | Latency | Footprint    |
-| --------- | --------------------------------------- | ------- | ------------ |
-| Capture   | PipeWire (`pw-record`)                  | <5 ms   | 0 MB         |
-| STT       | `whisper-large-v3-turbo` `int8_float16` | ~120 ms | ~1.1 GB VRAM |
-| Cleanup   | `qwen2.5:1.5b` via Ollama               | 66 ms   | ~1.2 GB VRAM |
-| Injection | `wl-copy` + `uinput`                    | ~15 ms  | 0 MB         |
-| **Total** | end to end                              | ~200 ms | ~85 MB RAM   |
+### Latency, end of speech to pasted text
+
+| Stage     | Engine                                  | 1.8 s clip  | 3.4 s clip  | 5.4 s clip  |
+| --------- | --------------------------------------- | ----------- | ----------- | ----------- |
+| Capture   | PipeWire (`pw-record`)                  | <5 ms       | <5 ms       | <5 ms       |
+| STT       | `whisper-large-v3-turbo` `int8_float16` | 330 ms      | 360 ms      | 378 ms      |
+| Cleanup   | `qwen2.5:1.5b` via Ollama               | 34 ms       | 58 ms       | 57 ms       |
+| Injection | `wl-copy` + `uinput`                    | ~15 ms      | ~15 ms      | ~15 ms      |
+| **Total** |                                         | **~380 ms** | **~435 ms** | **~450 ms** |
+
+### Memory, measured with `/proc/<pid>/smaps_rollup`
+
+PSS is the fair comparison: it charges shared pages once, so a 14-process
+Electron app is not penalised for mapping the same libraries repeatedly.
+
+| Process                      | RSS     | PSS     | VRAM     |
+| ---------------------------- | ------- | ------- | -------- |
+| `voice-flow` daemon          | 1231 MB | 1221 MB | 1146 MiB |
+| `ollama` + `llama-server`    | 667 MB  | —       | 1296 MiB |
+| A commercial Electron client | 1977 MB | 1014 MB | ~60 MiB  |
+
+So: lower RSS than the Electron client, slightly **higher** PSS, and you pay
+~2.4 GB of VRAM for keeping both models resident. On an 8 GB card that leaves
+roughly 5.5 GB free.
 
 ## Requirements
 
@@ -64,14 +94,18 @@ systemctl --user daemon-reload
 systemctl --user enable --now voice-flow
 ```
 
-The first run downloads the Whisper model (~1.6 GB) into the Hugging Face cache, so the very first dictation takes noticeably longer than 200 ms. Every run after that loads from disk.
+The first run downloads the Whisper model (~1.6 GB) into the Hugging Face cache, so the very first dictation takes noticeably longer. Every run after that loads from disk.
 
 Check that the daemon came up:
 
 ```bash
 systemctl --user status voice-flow
-voice-flow status
+./voice-flow.sh status
 ```
+
+The `voice-flow` console script lives in `.venv/bin`, so it is only on `PATH`
+inside an activated environment. From a clone, `./voice-flow.sh` and
+`uv run voice-flow` both work without activation.
 
 ## Usage
 
@@ -134,7 +168,7 @@ Voice Flow reads `config.json` from the project root. The shipped defaults:
 | `stt.language`              | Force a language code such as `"en"`, or leave `null` to autodetect per utterance.                        |
 | `cleaner.enabled`           | Send transcripts through the local LLM for punctuation and filler removal. `false` pastes the raw text.   |
 | `cleaner.ollama_url`        | Local Ollama generate endpoint. Change only if Ollama listens elsewhere.                                  |
-| `cleaner.model`             | Ollama model used for cleanup. `qwen2.5:1.5b` keeps cleanup at 66 ms.                                     |
+| `cleaner.model`             | Ollama model used for cleanup. `qwen2.5:1.5b` keeps cleanup at ~55 ms.                                    |
 | `cleaner.temperature`       | Sampling temperature for cleanup. Keep it low so the model edits rather than rewrites.                    |
 | `audio.sample_rate`         | Capture rate in Hz. Whisper expects `16000`; changing it forces a resample.                               |
 | `audio.channels`            | Capture channel count. Mono (`1`) is what the models want.                                                |
@@ -177,7 +211,7 @@ uv sync --extra cuda --group dev
 The full suite is 51 tests. CI runs the hardware-independent subset:
 
 ```bash
-.venv/bin/pytest -m "not uinput and not pipewire"
+.venv/bin/pytest
 ```
 
 Lint and format with Ruff:

@@ -70,16 +70,27 @@ def run_standalone_process(config: dict, audio_path: str):
     return {"status": "ok", "raw": raw_text, "cleaned": final_text}
 
 
-def handle_toggle(config: dict):
+def build_recorder(config: dict) -> AudioRecorder:
+    """Construct an AudioRecorder from config.
+
+    `audio.temp_file` of "auto" (or absent) defers to voice_flow.paths, which
+    resolves $XDG_RUNTIME_DIR/voice-flow at mode 0700. Never default to a
+    world-writable location such as /dev/shm.
+    """
     audio_cfg = config.get("audio", {})
     ui_cfg = config.get("ui", {})
-    recorder = AudioRecorder(
-        audio_path=audio_cfg.get("temp_file", "/dev/shm/voice_flow_record.wav"),
+    temp_file = audio_cfg.get("temp_file", "auto")
+    return AudioRecorder(
+        audio_path=None if temp_file == "auto" else temp_file,
         sample_rate=audio_cfg.get("sample_rate", 16000),
         channels=audio_cfg.get("channels", 1),
         sound_feedback=ui_cfg.get("sound_feedback", True),
         notifications=ui_cfg.get("notifications", True),
     )
+
+
+def handle_toggle(config: dict):
+    recorder = build_recorder(config)
 
     if recorder.is_recording():
         audio_file = recorder.stop()
@@ -115,22 +126,10 @@ def main():
     if cmd == "toggle":
         handle_toggle(config)
     elif cmd == "record-start":
-        audio_cfg = config.get("audio", {})
-        ui_cfg = config.get("ui", {})
-        rec = AudioRecorder(
-            audio_path=audio_cfg.get("temp_file", "/dev/shm/voice_flow_record.wav"),
-            sound_feedback=ui_cfg.get("sound_feedback", True),
-            notifications=ui_cfg.get("notifications", True),
-        )
+        rec = build_recorder(config)
         rec.start()
     elif cmd == "record-stop":
-        audio_cfg = config.get("audio", {})
-        ui_cfg = config.get("ui", {})
-        rec = AudioRecorder(
-            audio_path=audio_cfg.get("temp_file", "/dev/shm/voice_flow_record.wav"),
-            sound_feedback=ui_cfg.get("sound_feedback", True),
-            notifications=ui_cfg.get("notifications", True),
-        )
+        rec = build_recorder(config)
         audio_file = rec.stop()
         if audio_file:
             try:

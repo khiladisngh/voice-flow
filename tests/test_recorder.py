@@ -1,16 +1,63 @@
 import os
 import subprocess
 import time
+import wave
 from pathlib import Path
+from unittest.mock import MagicMock, patch
 
 import pytest
 
 from voice_flow.paths import get_audio_path, get_pid_file
 from voice_flow.recorder import AudioRecorder
 
+# Captured before any patching so the fake recorder can still spawn a harmless
+# stand-in process while subprocess.Popen is mocked out.
+_REAL_POPEN = subprocess.Popen
 
-@pytest.mark.pipewire
-def test_recorder_lifecycle_flushes_process(monkeypatch, tmp_path):
+
+def _write_silent_wav(path: str, channels: int, sample_rate: int, frames: int = 1600):
+    """Produce the artifact pw-record would have produced, without a microphone."""
+    with wave.open(str(path), "wb") as wav:
+        wav.setnchannels(channels)
+        wav.setsampwidth(2)
+        wav.setframerate(sample_rate)
+        wav.writeframes(b"\x00\x00" * frames * channels)
+
+
+@pytest.fixture
+def fake_pw_record():
+    """Stand in for pw-record: no microphone, no PipeWire, still a real PID.
+
+    The recorder only needs two things from the capture process — a live PID it
+    can signal and a non-empty wav on disk — so we spawn a generic `sleep` for
+    liveness and write the wav ourselves.
+    """
+    spawned = []
+
+    def spawn(argv, *args, **kwargs):
+        assert argv[0] == "pw-record", f"unexpected subprocess spawn: {argv!r}"
+        channels = int(argv[argv.index("--channels") + 1])
+        rate = int(argv[argv.index("--rate") + 1])
+        _write_silent_wav(argv[-1], channels, rate)
+
+        proc = _REAL_POPEN(["sleep", "0.2"])
+        spawned.append(proc)
+
+        fake = MagicMock()
+        fake.pid = proc.pid
+        fake.poll.return_value = None
+        return fake
+
+    with patch("voice_flow.recorder.subprocess.Popen", side_effect=spawn) as mock_popen:
+        yield mock_popen
+
+    for proc in spawned:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait()
+
+
+def test_recorder_lifecycle_flushes_process(monkeypatch, tmp_path, fake_pw_record):
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
     recorder = AudioRecorder(sound_feedback=False, notifications=False)
 
@@ -28,8 +75,7 @@ def test_recorder_lifecycle_flushes_process(monkeypatch, tmp_path):
     assert "record_unit_test.wav" in audio_file
 
 
-@pytest.mark.pipewire
-def test_recorder_start_already_recording(monkeypatch, tmp_path):
+def test_recorder_start_already_recording(monkeypatch, tmp_path, fake_pw_record):
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
     recorder = AudioRecorder(sound_feedback=False, notifications=False)
 
@@ -90,8 +136,7 @@ def test_recorder_stop_timeout_force_kills(monkeypatch, tmp_path):
             pass
 
 
-@pytest.mark.pipewire
-def test_recorder_session_paths(monkeypatch, tmp_path):
+def test_recorder_session_paths(monkeypatch, tmp_path, fake_pw_record):
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
     recorder = AudioRecorder(sound_feedback=False, notifications=False)
 
@@ -125,8 +170,7 @@ def test_recorder_stop_already_dead_process(monkeypatch, tmp_path):
     assert not get_pid_file().exists()
 
 
-@pytest.mark.pipewire
-def test_recorder_custom_audio_path_handling(monkeypatch, tmp_path):
+def test_recorder_custom_audio_path_handling(monkeypatch, tmp_path, fake_pw_record):
     monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
     custom_path = str(tmp_path / "custom_recording.wav")
     recorder = AudioRecorder(audio_path=custom_path, sound_feedback=False, notifications=False)

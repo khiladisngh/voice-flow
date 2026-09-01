@@ -46,61 +46,67 @@ See [Architecture](architecture.md) for what each module actually does and why.
 ## Tests
 
 ```bash
-.venv/bin/pytest                                     # everything: 51 passed
-.venv/bin/pytest -m "not uinput and not pipewire"    # CI subset: 38 passed, 13 deselected
-.venv/bin/pytest tests/test_hotkey.py -v             # one file
-.venv/bin/pytest --cov=voice_flow                    # coverage
+.venv/bin/pytest                           # everything: 51 passed
+.venv/bin/pytest tests/test_hotkey.py -v   # one file
+.venv/bin/pytest --cov=voice_flow          # coverage
 ```
 
-Coverage is configured for `source = ["voice_flow"]` with
+There is no "CI subset" and there are no hardware markers: CI runs exactly the
+command you run. Coverage is configured for `source = ["voice_flow"]` with
 `voice_flow/transcriber.py` omitted — it cannot be exercised without a GPU and a
 1.6 GB model download.
 
-### The hardware-marker contract
+### The suite is hermetic, and must stay that way
 
-CI runners have no `/dev/uinput`, no PipeWire session, no GPU, and no Wayland
-compositor. The same suite must be green there and locally, so tests that touch
-real devices declare what they need and skip themselves when it is absent.
+Every test runs without a GPU, a PipeWire session, `/dev/uinput`, or a Wayland
+compositor, which is why the same command is green on a CI runner and on a
+developer machine.
 
-Two markers are registered in `pyproject.toml`:
+This is not a nicety. An earlier version of these tests constructed real
+`TextInjector` objects, so running `pytest` opened `/dev/uinput`, synthesized
+real `Ctrl+V` keystrokes into whatever window happened to have focus, and
+overwrote the developer's clipboard. Recorder tests spawned real `pw-record`
+and opened the microphone.
 
-| Marker     | Requires                                     | Probe in `tests/conftest.py`            |
-| ---------- | -------------------------------------------- | --------------------------------------- |
-| `uinput`   | A writable `/dev/uinput` (the `input` group) | `os.access("/dev/uinput", os.W_OK)`     |
-| `pipewire` | A live PipeWire session with `pw-record`     | `shutil.which("pw-record") is not None` |
+`tests/conftest.py` installs an autouse fixture that neutralises those seams
+for the whole suite:
 
-`pytest_collection_modifyitems` adds a skip marker to any test carrying a marker
-whose capability probe failed. Locally the tests run for real; in CI they are
-deselected by `-m "not uinput and not pipewire"`.
+| Seam                                   | Replaced with                        |
+| -------------------------------------- | ------------------------------------ |
+| `voice_flow.injector.evdev.UInput`     | A fresh `MagicMock` per construction |
+| `TextInjector._set_clipboard`          | A mock; `wl-copy` never runs         |
+| `TextInjector._get_current_clipboard`  | A mock returning `None`              |
+| `voice_flow.recorder.subprocess.Popen` | `fake_pw_record`, per-test opt-in    |
 
-### Reproducing CI locally
+`fake_pw_record` writes a real WAV with the `wave` module and spawns a harmless
+`sleep` so the PID is genuinely signalable — that keeps the `stop()` teardown
+path (SIGINT, the wait loop, the `SIGKILL` escalation) under test without ever
+touching audio hardware.
 
-A machine that _has_ the hardware cannot detect a device-touching test that
-forgot its marker: the test simply passes. Force both probes off to collect
-exactly what CI collects:
+!!! warning "Never let a test reach the real session"
 
-```bash
-VOICE_FLOW_TEST_NO_HARDWARE=1 .venv/bin/pytest
-```
+    A new test must not open `/dev/uinput`, synthesize a keystroke, write the
+    clipboard, or spawn `pw-record`. Patch the seam instead. Verify with a
+    clipboard canary, which must survive the suite untouched:
 
-Expect `38 passed, 13 skipped`. If anything **fails** rather than skips, that
-test reaches for a device without declaring a marker — add the marker instead
-of loosening the probe. Run this before pushing changes to `tests/` or to
-`recorder.py`, `injector.py`, or `hotkey.py`.
-
-!!! warning "New tests touching real devices MUST carry the matching marker"
-An unmarked test that opens `/dev/uinput` or spawns `pw-record` will pass on
-your machine and fail in CI. Mark it:
-
-    ```python
-    @pytest.mark.uinput
-    def test_injector_something():
-        ...
+    ```bash
+    printf 'CANARY' | wl-copy
+    .venv/bin/pytest -q >/dev/null 2>&1
+    test "$(wl-paste)" = CANARY && echo "session intact"
     ```
 
 `--strict-markers` is enabled, so a typo in a marker name is a collection error
-rather than a silently ignored decorator. Adding a genuinely new marker means
-registering it under `[tool.pytest.ini_options].markers` first.
+rather than a silently ignored decorator.
+
+### Reproducing the published benchmarks
+
+```bash
+.venv/bin/python scripts/benchmark.py
+```
+
+It synthesizes speech with `espeak-ng`, runs it through the real transcriber
+and cleaner, and prints medians over warm runs plus RSS/PSS from
+`/proc/<pid>/smaps_rollup`. Every figure in the README comes from this script.
 
 ### Test-writing conventions
 
@@ -216,11 +222,11 @@ Before pushing:
 
 ## Continuous integration
 
-| Workflow      | Trigger               | What it does                                                                                                                                                          |
-| ------------- | --------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `ci.yml`      | push and pull request | `uv sync --group dev` (no `cuda` extra — those wheels are 2.2 GB), ruff lint and format check, then `pytest -m "not uinput and not pipewire"` on Python 3.12 and 3.13 |
-| `docs.yml`    | push to `main`        | `zensical build --strict` and deploy to GitHub Pages                                                                                                                  |
-| `release.yml` | tag matching `v*`     | build the wheel and sdist, create a GitHub Release with the matching `CHANGELOG.md` section as the body, attach `dist/*`                                              |
+| Workflow      | Trigger               | What it does                                                                                                                         |
+| ------------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| `ci.yml`      | push and pull request | `uv sync --group dev` (no `cuda` extra — those wheels are 2.2 GB), ruff lint and format check, then `pytest` on Python 3.12 and 3.13 |
+| `docs.yml`    | push to `main`        | `zensical build --strict` and deploy to GitHub Pages                                                                                 |
+| `release.yml` | tag matching `v*`     | build the wheel and sdist, create a GitHub Release with the matching `CHANGELOG.md` section as the body, attach `dist/*`             |
 
 CI installs without the `cuda` extra deliberately: nothing in the CI subset
 imports `ctranslate2`, and the 2.2 GB download would dominate every run.

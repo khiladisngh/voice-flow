@@ -1,3 +1,4 @@
+import errno
 import json
 import signal
 import socket
@@ -18,6 +19,7 @@ SOCKET_PATH = get_socket_path()
 class VoiceFlowDaemon:
     def __init__(self, config: dict):
         self.config = config
+        self._shutting_down = False
         stt_cfg = config.get("stt", {})
         cleaner_cfg = config.get("cleaner", {})
         ui_cfg = config.get("ui", {})
@@ -41,7 +43,12 @@ class VoiceFlowDaemon:
                 ollama_url=cleaner_cfg.get("ollama_url", "http://localhost:11434/api/generate"),
                 model=cleaner_cfg.get("model", "qwen2.5:1.5b"),
                 temperature=cleaner_cfg.get("temperature", 0.1),
+                timeout=cleaner_cfg.get("timeout_sec", 15.0),
+                keep_alive=cleaner_cfg.get("keep_alive", -1),
             )
+            # Pay the model-load cost now, not on the user's first dictation.
+            if self.cleaner.warm_up():
+                print("[Daemon] Cleaner model warm and pinned in VRAM")
 
         self.injector = TextInjector(restore_clipboard=ui_cfg.get("restore_clipboard", True))
         temp_file = audio_cfg.get("temp_file", "auto")
@@ -122,6 +129,7 @@ class VoiceFlowDaemon:
 
     def stop(self):
         """Stop the daemon server and cleanup resources."""
+        self._shutting_down = True
         if self.hotkey_listener:
             try:
                 self.hotkey_listener.stop()
@@ -152,11 +160,20 @@ class VoiceFlowDaemon:
 
         self.register_signal_handlers()
         try:
-            while True:
+            while not self._shutting_down:
                 try:
                     conn, _ = self.server.accept()
-                except OSError:
-                    break
+                except OSError as exc:
+                    # A closed listening socket during shutdown is expected.
+                    # Anything else (ECONNABORTED, EINTR, EMFILE) is transient:
+                    # log it and keep serving rather than killing IPC for the
+                    # lifetime of the daemon.
+                    if self._shutting_down or exc.errno in (errno.EBADF, errno.EINVAL):
+                        break
+                    print(
+                        f"[Daemon] accept() failed ({errno.errorcode.get(exc.errno, exc.errno)}); continuing"
+                    )
+                    continue
                 try:
                     with conn.makefile("r", encoding="utf-8") as f:
                         line = f.readline()

@@ -23,8 +23,8 @@ setup: sync ## Full dev setup, including the prettier toolchain
 test: ## Run the full suite (needs input group + PipeWire)
 	$(PYTEST)
 
-test-ci: ## Run exactly what CI runs (no uinput, no PipeWire)
-	$(PYTEST) -m "not uinput and not pipewire"
+test-ci: ## Run exactly what CI runs (identical to `make test`)
+	$(PYTEST)
 
 lint: ## Check everything CI checks: ruff (Python) + prettier (Markdown/YAML/JSON)
 	$(RUFF) check .

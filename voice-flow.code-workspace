@@ -57,7 +57,7 @@
         "label": "test: ci subset",
         "detail": "What GitHub Actions runs (no uinput, no PipeWire)",
         "type": "shell",
-        "command": "${workspaceFolder}/.venv/bin/pytest -m 'not uinput and not pipewire'",
+        "command": "${workspaceFolder}/.venv/bin/pytest",
         "problemMatcher": []
       },
       {

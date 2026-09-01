@@ -307,7 +307,7 @@ attempted.
 ## Text goes to the wrong window
 
 The paste lands in whatever has keyboard focus when processing _completes_, not
-when you started speaking. Stay in the target window for the ~200 ms after you
+when you started speaking. Stay in the target window for the ~420 ms after you
 release the hotkey.
 
 If nothing is pasted anywhere and the log shows a transcript, the `uinput` device

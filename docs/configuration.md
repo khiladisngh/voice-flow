@@ -152,7 +152,7 @@ utterances come back capitalised and punctuated.
 | `base` / `base.en`     | ~0.2 GB                       | Fair      | Fastest option that produces readable sentences.                                        |
 | `small` / `small.en`   | ~0.5 GB                       | Good      | Reasonable choice for CPU-only setups.                                                  |
 | `medium` / `medium.en` | ~1.5 GB                       | Very good | Slower than `large-v3-turbo` with no accuracy benefit — skip it.                        |
-| **`large-v3-turbo`**   | **~1.1 GB (measured)**        | Excellent | **Default.** ~120 ms per short utterance on an RTX 3070. Best accuracy-per-millisecond. |
+| **`large-v3-turbo`**   | **~1.1 GB (measured)**        | Excellent | **Default.** ~360 ms per short utterance on an RTX 3070. Best accuracy-per-millisecond. |
 | `large-v3`             | ~3 GB                         | Excellent | Marginally better on hard audio, several times slower.                                  |
 
 Only the `large-v3-turbo` row is measured on this project's reference hardware

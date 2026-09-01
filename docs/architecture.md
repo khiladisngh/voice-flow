@@ -192,7 +192,7 @@ restored in the `finally` block so the class is safe to drive from tests.
 The CLI and the fallback path. It resolves `config.json` relative to the package
 (`<repo>/config.json`), dispatches on `argv[1]` (defaulting to `toggle`), and
 owns the daemon-first strategy: `handle_toggle` and `record-stop` try
-`send_to_daemon` first for the ~200 ms warm path, and on any failure fall through
+`send_to_daemon` first for the ~420 ms warm path, and on any failure fall through
 to `run_standalone_process`, which builds a transcriber, cleaner, and injector in
 the calling process. Dictation therefore still works when the service is down —
 just slowly. `run_standalone_process` imports the heavy modules lazily inside the

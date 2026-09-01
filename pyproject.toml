@@ -74,10 +74,6 @@ docs = [
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q --strict-markers"
-markers = [
-    "uinput: requires a writable /dev/uinput (skipped without the 'input' group)",
-    "pipewire: requires a live PipeWire session and pw-record",
-]
 
 [tool.coverage.run]
 source = ["voice_flow"]

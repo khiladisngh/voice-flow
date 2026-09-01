@@ -185,7 +185,7 @@ Then edit `config.json`:
 ```
 
 `int8` is the correct compute type for CPU inference; `int8_float16` requires
-CUDA. Expect transcription to take seconds rather than ~120 ms. Dropping
+CUDA. Expect transcription to take seconds rather than ~360 ms. Dropping
 `stt.model_size` to `small` or `base` trades accuracy for a large speed gain —
 see [Configuration](configuration.md#stt) for the model trade-off table.
 

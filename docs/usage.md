@@ -41,13 +41,13 @@ The launcher script `./voice-flow.sh` runs the package from the project
 virtualenv. If you installed the distribution, the console script `voice-flow`
 is equivalent. With no argument, `toggle` is assumed.
 
-| Command                   | What it does                                                                                                                                              |
-| ------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `voice-flow toggle`       | Start recording if idle; otherwise stop, transcribe, clean, and paste. This is the scriptable equivalent of the hotkey.                                   |
-| `voice-flow record-start` | Start recording and return immediately. Does not transcribe.                                                                                              |
-| `voice-flow record-stop`  | Stop recording, then transcribe, clean, and paste.                                                                                                        |
-| `voice-flow daemon`       | Run the daemon in the foreground: loads Whisper, connects to Ollama, starts the hotkey listener, and serves the Unix socket. Normally started by systemd. |
-| `voice-flow status`       | Report whether the daemon is answering on its socket and whether a recording is currently active.                                                         |
+| Command                                                        | What it does                                                                                                                                              |
+| -------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `voice-flow toggle`                                            | Start recording if idle; otherwise stop, transcribe, clean, and paste. This is the scriptable equivalent of the hotkey.                                   |
+| `voice-flow record-start`                                      | Start recording and return immediately. Does not transcribe.                                                                                              |
+| `voice-flow record-stop`                                       | Stop recording, then transcribe, clean, and paste.                                                                                                        |
+| `voice-flow daemon`                                            | Run the daemon in the foreground: loads Whisper, connects to Ollama, starts the hotkey listener, and serves the Unix socket. Normally started by systemd. |
+| `voice-flow status` (or `./voice-flow.sh status` from a clone) | Report whether the daemon is answering on its socket and whether a recording is currently active.                                                         |
 
 Anything else prints the usage line:
 
@@ -195,7 +195,7 @@ In **KDE Plasma 6**:
    combination.
 5. Click **Apply**.
 
-Because the daemon is still warm, the shortcut path has the same ~200 ms latency
+Because the daemon is still warm, the shortcut path has the same ~420 ms latency
 as the built-in hotkey — the CLI only ships the audio path over the socket.
 
 !!! warning "Compositor shortcuts are not global"

@@ -74,6 +74,46 @@ roughly 5.5 GB free.
 
 ## Install
 
+### One line (recommended)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/khiladisngh/voice-flow/main/install.sh | sh
+```
+
+Clones to `~/.local/share/voice-flow`, installs the Python environment with CUDA
+support, pulls the Ollama cleanup model, registers the systemd user service, and
+links `voice-flow` into `~/.local/bin`. Re-run it to upgrade. It is idempotent
+and never needs root.
+
+Useful switches:
+
+| Variable                | Effect                                   |
+| ----------------------- | ---------------------------------------- |
+| `VOICE_FLOW_NO_CUDA=1`  | Skip the 2.2 GB NVIDIA wheels (CPU only) |
+| `VOICE_FLOW_NO_MODEL=1` | Skip pulling the Ollama cleanup model    |
+| `VOICE_FLOW_DIR=...`    | Install somewhere other than the default |
+| `VOICE_FLOW_YES=1`      | Non-interactive; assume yes              |
+
+To remove everything:
+
+```bash
+~/.local/share/voice-flow/uninstall.sh          # add VOICE_FLOW_PURGE=1 to drop cached models
+```
+
+### Homebrew
+
+```bash
+brew tap khiladisngh/voice-flow
+brew install voice-flow
+voice-flow-setup
+```
+
+Homebrew installs the CLI only — it does not add you to the `input` group or
+start the service, so run `voice-flow-setup` afterwards. The formula is CPU-only;
+use the one-line installer if you want CUDA.
+
+### From source
+
 ```bash
 git clone https://github.com/khiladisngh/voice-flow.git
 cd voice-flow

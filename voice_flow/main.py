@@ -1,4 +1,5 @@
 import json
+import signal
 import socket
 import sys
 from pathlib import Path
@@ -8,6 +9,18 @@ from voice_flow.recorder import AudioRecorder
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.json"
 SOCKET_PATH = get_socket_path()
+
+
+def _restore_default_sigpipe() -> None:
+    """Exit quietly when stdout closes, the way Unix CLIs are expected to.
+
+    Only for short-lived subcommands. This MUST NOT apply to the daemon: with
+    SIG_DFL, a client that disconnects mid-response would deliver SIGPIPE at
+    conn.sendall() and terminate the whole daemon, instead of raising a
+    BrokenPipeError that the request handler catches.
+    """
+    if hasattr(signal, "SIGPIPE"):
+        signal.signal(signal.SIGPIPE, signal.SIG_DFL)
 
 
 def load_config() -> dict:
@@ -122,6 +135,10 @@ def handle_daemon(config: dict):
 def main():
     config = load_config()
     cmd = sys.argv[1] if len(sys.argv) > 1 else "toggle"
+
+    # Long-lived daemon must keep Python's SIGPIPE handling; see the docstring.
+    if cmd != "daemon":
+        _restore_default_sigpipe()
 
     if cmd == "toggle":
         handle_toggle(config)

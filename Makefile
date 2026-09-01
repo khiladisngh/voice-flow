@@ -7,7 +7,7 @@ PRETTIER := npx prettier
 
 .DEFAULT_GOAL := help
 
-.PHONY: help sync setup test test-ci lint format docs docs-build restart status logs toggle \
+.PHONY: help sync setup test test-ci lint format docs docs-build restart status logs toggle brew-sync \
         bump-patch bump-minor bump-major clean
 
 help: ## Show this help
@@ -62,6 +62,17 @@ bump-patch: ## Bump patch version, commit, and tag
 
 bump-minor: ## Bump minor version, commit, and tag
 	$(BUMP) bump minor --verbose
+
+brew-sync: ## Stamp the formula sha256 from the current tag and copy into the tap
+	@test -n "$(TAP_DIR)" || { echo "usage: make brew-sync TAP_DIR=../homebrew-voice-flow TAG=v0.1.1"; exit 1; }
+	@test -n "$(TAG)" || { echo "usage: make brew-sync TAP_DIR=../homebrew-voice-flow TAG=v0.1.1"; exit 1; }
+	@sha=$$(curl -fsSL "https://github.com/khiladisngh/voice-flow/archive/refs/tags/$(TAG).tar.gz" | sha256sum | cut -d' ' -f1); \
+	 echo "sha256 for $(TAG): $$sha"; \
+	 mkdir -p "$(TAP_DIR)/Formula"; \
+	 sed -e "s|refs/tags/v[0-9.]*\.tar\.gz|refs/tags/$(TAG).tar.gz|" \
+	     -e "s|sha256 \".*\"|sha256 \"$$sha\"|" \
+	     packaging/homebrew/voice-flow.rb > "$(TAP_DIR)/Formula/voice-flow.rb"; \
+	 echo "wrote $(TAP_DIR)/Formula/voice-flow.rb"
 
 bump-major: ## Bump major version, commit, and tag
 	$(BUMP) bump major --verbose

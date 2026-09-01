@@ -1,0 +1,29 @@
+{
+  "hotkey": {
+    "enabled": true,
+    "combo": ["KEY_RIGHTCTRL", "KEY_RIGHTALT"],
+    "hold_threshold_sec": 0.45
+  },
+  "stt": {
+    "model_size": "large-v3-turbo",
+    "device": "cuda",
+    "compute_type": "int8_float16",
+    "language": null
+  },
+  "cleaner": {
+    "enabled": true,
+    "ollama_url": "http://localhost:11434/api/generate",
+    "model": "qwen2.5:1.5b",
+    "temperature": 0.1
+  },
+  "audio": {
+    "sample_rate": 16000,
+    "channels": 1,
+    "temp_file": "/dev/shm/voice_flow_record.wav"
+  },
+  "ui": {
+    "sound_feedback": true,
+    "notifications": true,
+    "restore_clipboard": true
+  }
+}

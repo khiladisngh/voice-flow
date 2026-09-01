@@ -1,0 +1,14 @@
+[Unit]
+Description=Voice Flow Local Dictation Daemon (CUDA + Faster Whisper + Ollama)
+After=network.target sound.target
+
+[Service]
+Type=simple
+WorkingDirectory=/home/gishant-singh/Dev/tools/voice-flow
+ExecStart=/home/gishant-singh/Dev/tools/voice-flow/voice-flow.sh daemon
+Restart=on-failure
+RestartSec=3
+Environment=PYTHONUNBUFFERED=1
+
+[Install]
+WantedBy=default.target

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.1] - 2026-09-02
+
 ### Fixed
 
 - `main.py`'s standalone fallback path defaulted `audio.temp_file` to the world-writable `/dev/shm/voice_flow_record.wav` in three places. All three now go through a single `build_recorder()` that honours the `"auto"` sentinel and resolves `$XDG_RUNTIME_DIR/voice-flow` at mode `0700`.
@@ -38,5 +40,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Runtime artefacts (audio, PID, socket) live in `$XDG_RUNTIME_DIR/voice-flow` at mode `0700` instead of world-writable `/dev/shm`.
 - Dictated speech is wrapped in `<spoken_text>` delimiters before reaching the LLM to contain prompt injection.
 
-[Unreleased]: https://github.com/khiladisngh/voice-flow/compare/v0.1.0...HEAD
+[Unreleased]: https://github.com/khiladisngh/voice-flow/compare/v0.1.1...HEAD
+[0.1.1]: https://github.com/khiladisngh/voice-flow/compare/v0.1.0...v0.1.1
 [0.1.0]: https://github.com/khiladisngh/voice-flow/releases/tag/v0.1.0

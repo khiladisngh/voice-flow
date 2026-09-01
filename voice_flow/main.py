@@ -2,12 +2,10 @@ import json
 import signal
 import socket
 import sys
-from pathlib import Path
 
-from voice_flow.paths import get_socket_path
+from voice_flow.paths import get_config_path, get_socket_path
 from voice_flow.recorder import AudioRecorder
 
-CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.json"
 SOCKET_PATH = get_socket_path()
 
 
@@ -24,12 +22,15 @@ def _restore_default_sigpipe() -> None:
 
 
 def load_config() -> dict:
-    if CONFIG_PATH.exists():
-        try:
-            return json.loads(CONFIG_PATH.read_text())
-        except Exception:
-            pass
-    return {}
+    """Load settings from the first config file that exists, else defaults."""
+    path = get_config_path()
+    if path is None:
+        return {}
+    try:
+        return json.loads(path.read_text())
+    except (OSError, json.JSONDecodeError) as exc:
+        print(f"[Config] Ignoring unreadable {path}: {exc.__class__.__name__}")
+        return {}
 
 
 def send_to_daemon(payload: dict, timeout: float = 15.0) -> dict:

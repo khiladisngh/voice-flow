@@ -8,7 +8,7 @@ import os
 import stat
 from pathlib import Path
 
-from voice_flow.paths import get_audio_path, get_pid_file, get_runtime_dir, get_socket_path
+from voice_flow.paths import get_audio_path, get_config_path, get_pid_file, get_runtime_dir, get_socket_path
 
 
 def test_runtime_dir_permissions_and_structure(tmp_path, monkeypatch):
@@ -86,3 +86,52 @@ def test_recorder_uses_isolated_paths(tmp_path, monkeypatch):
     rec_default = AudioRecorder()
     assert rec_default.audio_path == str(test_xdg / "voice-flow" / "record_current.wav")
     assert rec_default.pid_file == test_xdg / "voice-flow" / "recorder.pid"
+
+
+def test_config_path_prefers_user_location_over_bundled(tmp_path, monkeypatch):
+    """A packaged install must read the user's config, not the read-only copy."""
+    monkeypatch.delenv("VOICE_FLOW_CONFIG", raising=False)
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    user_config = tmp_path / "voice-flow" / "config.json"
+    user_config.parent.mkdir(parents=True)
+    user_config.write_text('{"stt": {"model_size": "from-user-config"}}')
+
+    assert get_config_path() == user_config
+
+
+def test_config_path_env_override_wins(tmp_path, monkeypatch):
+    explicit = tmp_path / "explicit.json"
+    explicit.write_text("{}")
+    monkeypatch.setenv("VOICE_FLOW_CONFIG", str(explicit))
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+
+    assert get_config_path() == explicit
+
+
+def test_config_path_missing_override_is_none(tmp_path, monkeypatch):
+    monkeypatch.setenv("VOICE_FLOW_CONFIG", str(tmp_path / "nope.json"))
+    assert get_config_path() is None
+
+
+def test_load_config_reads_user_location(tmp_path, monkeypatch):
+    from voice_flow.main import load_config
+
+    monkeypatch.delenv("VOICE_FLOW_CONFIG", raising=False)
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    user_config = tmp_path / "voice-flow" / "config.json"
+    user_config.parent.mkdir(parents=True)
+    user_config.write_text('{"cleaner": {"enabled": false}}')
+
+    assert load_config() == {"cleaner": {"enabled": False}}
+
+
+def test_load_config_tolerates_malformed_json(tmp_path, monkeypatch):
+    from voice_flow.main import load_config
+
+    monkeypatch.delenv("VOICE_FLOW_CONFIG", raising=False)
+    monkeypatch.setenv("XDG_CONFIG_HOME", str(tmp_path))
+    user_config = tmp_path / "voice-flow" / "config.json"
+    user_config.parent.mkdir(parents=True)
+    user_config.write_text("{ not valid json")
+
+    assert load_config() == {}

@@ -10,4 +10,5 @@ Base commit: 2036f89
 - Task 2: complete (commits 56d0001..d53af4b, 9 passed tests)
 - Task 3: complete (commits d53af4b..24bdce3, 10 passed tests)
 - Task 4: complete (commits 24bdce3..047289c, 12 passed tests)
-- Task 5: complete (6 passed tests)
+- Task 5: complete (commits 047289c..49d2760, 6 passed tests)
+- Task 6: complete (commits 49d2760..cf5a447, 10 passed tests)

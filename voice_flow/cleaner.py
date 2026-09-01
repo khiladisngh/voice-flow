@@ -22,18 +22,20 @@ class TextCleaner:
         self.model = model
         self.temperature = temperature
         self.timeout = timeout
-
+        self.session = requests.Session()
     def clean(self, raw_text: str) -> str:
         """Post-process speech text using local LLM with fallback to raw text."""
+        if not raw_text:
+            return ""
         raw_text = raw_text.strip()
         if not raw_text or len(raw_text.split()) < 3:
             # Very short text (1-2 words) rarely needs LLM cleanup
             return raw_text
 
-        prompt = f"{SYSTEM_PROMPT}\n\nSpoken Input:\n{raw_text}\n\nClean Output:"
+        prompt = f"{SYSTEM_PROMPT}\n\n<spoken_text>\n{raw_text}\n</spoken_text>\n\nClean Output:"
 
         try:
-            resp = requests.post(
+            resp = self.session.post(
                 self.ollama_url,
                 json={
                     "model": self.model,
@@ -55,3 +57,7 @@ class TextCleaner:
             pass
 
         return raw_text
+
+    def close(self):
+        """Close the persistent HTTP session."""
+        self.session.close()

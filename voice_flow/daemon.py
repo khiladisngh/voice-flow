@@ -3,6 +3,7 @@ import sys
 import json
 import time
 import socket
+import signal
 from pathlib import Path
 from voice_flow.transcriber import Transcriber
 from voice_flow.cleaner import TextCleaner
@@ -102,6 +103,37 @@ class VoiceFlowDaemon:
             "clean_ms": round(t_clean * 1000, 1),
             "total_ms": round(total_ms, 1),
         }
+    def _handle_signal(self, signum, frame):
+        print(f"[Daemon] Received signal {signum}, shutting down gracefully...")
+        self.stop()
+        sys.exit(0)
+
+    def register_signal_handlers(self):
+        try:
+            self._prev_sigterm = signal.signal(signal.SIGTERM, self._handle_signal)
+            self._prev_sigint = signal.signal(signal.SIGINT, self._handle_signal)
+            return True
+        except (ValueError, AttributeError):
+            return False
+
+    def stop(self):
+        """Stop the daemon server and cleanup resources."""
+        if self.hotkey_listener:
+            try:
+                self.hotkey_listener.stop()
+            except Exception:
+                pass
+        socket_path = get_socket_path()
+        if socket_path.exists():
+            try:
+                socket_path.unlink()
+            except Exception:
+                pass
+        if getattr(self, "server", None):
+            try:
+                self.server.close()
+            except Exception:
+                pass
 
     def start_server(self):
         socket_dir = get_runtime_dir()
@@ -109,46 +141,55 @@ class VoiceFlowDaemon:
         if socket_path.exists():
             socket_path.unlink()
 
-        server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        server.bind(str(socket_path))
-        server.listen(5)
+        self.server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+        self.server.bind(str(socket_path))
+        self.server.listen(5)
         print(f"[Daemon] Listening on Unix socket: {socket_path}")
+
+        self.register_signal_handlers()
         try:
             while True:
-                conn, _ = server.accept()
+                conn, _ = self.server.accept()
                 try:
-                    data = conn.recv(4096).decode("utf-8")
-                    if not data:
+                    with conn.makefile("r", encoding="utf-8") as f:
+                        line = f.readline()
+                    if not line:
                         continue
-                    req = json.loads(data)
+                    req = json.loads(line)
                     action = req.get("action")
 
                     if action == "ping":
-                        conn.sendall(json.dumps({"status": "pong"}).encode("utf-8"))
+                        res = {"status": "pong"}
                     elif action == "process":
                         audio_path = req.get("audio_path")
-                        result = self.process_audio(audio_path)
-                        conn.sendall(json.dumps(result).encode("utf-8"))
+                        res = self.process_audio(audio_path)
                     elif action == "toggle":
                         if self.recorder.is_recording():
                             self.on_hotkey_stop()
-                            conn.sendall(json.dumps({"status": "stopped"}).encode("utf-8"))
+                            res = {"status": "stopped"}
                         else:
                             self.on_hotkey_start()
-                            conn.sendall(json.dumps({"status": "started"}).encode("utf-8"))
+                            res = {"status": "started"}
                     else:
-                        conn.sendall(json.dumps({"error": f"unknown action {action}"}).encode("utf-8"))
+                        res = {"error": f"unknown action {action}"}
+
+                    conn.sendall(json.dumps(res).encode("utf-8") + b"\n")
                 except Exception as e:
                     try:
-                        conn.sendall(json.dumps({"error": str(e)}).encode("utf-8"))
+                        conn.sendall(json.dumps({"error": str(e)}).encode("utf-8") + b"\n")
                     except Exception:
                         pass
                 finally:
                     conn.close()
         finally:
-            if self.hotkey_listener:
-                self.hotkey_listener.stop()
-            socket_path = get_socket_path()
-            if socket_path.exists():
-                socket_path.unlink()
-            server.close()
+            self.stop()
+            if getattr(self, "_prev_sigterm", None) is not None:
+                try:
+                    signal.signal(signal.SIGTERM, self._prev_sigterm)
+                except (ValueError, AttributeError):
+                    pass
+            if getattr(self, "_prev_sigint", None) is not None:
+                try:
+                    signal.signal(signal.SIGINT, self._prev_sigint)
+                except (ValueError, AttributeError):
+                    pass

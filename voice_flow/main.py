@@ -5,9 +5,10 @@ import time
 import socket
 from pathlib import Path
 from voice_flow.recorder import AudioRecorder
+from voice_flow.paths import get_socket_path
 
 CONFIG_PATH = Path(__file__).resolve().parent.parent / "config.json"
-SOCKET_PATH = Path.home() / ".cache" / "voice-flow" / "daemon.sock"
+SOCKET_PATH = get_socket_path()
 
 def load_config() -> dict:
     if CONFIG_PATH.exists():
@@ -18,15 +19,19 @@ def load_config() -> dict:
     return {}
 
 def send_to_daemon(payload: dict, timeout: float = 15.0) -> dict:
-    if not SOCKET_PATH.exists():
+    sock_path = get_socket_path()
+    if not sock_path.exists():
         raise ConnectionError("Daemon socket not found")
     client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     client.settimeout(timeout)
-    client.connect(str(SOCKET_PATH))
+    client.connect(str(sock_path))
     try:
-        client.sendall(json.dumps(payload).encode("utf-8"))
-        data = client.recv(8192).decode("utf-8")
-        return json.loads(data)
+        client.sendall(json.dumps(payload).encode("utf-8") + b"\n")
+        with client.makefile("r", encoding="utf-8") as f:
+            line = f.readline()
+            if not line:
+                raise ConnectionResetError("Empty response from daemon")
+            return json.loads(line)
     finally:
         client.close()
 
@@ -132,7 +137,7 @@ def main():
         handle_daemon(config)
     elif cmd == "status":
         daemon_ok = False
-        if SOCKET_PATH.exists():
+        if get_socket_path().exists():
             try:
                 res = send_to_daemon({"action": "ping"}, timeout=1.0)
                 daemon_ok = res.get("status") == "pong"

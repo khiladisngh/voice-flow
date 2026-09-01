@@ -64,13 +64,16 @@ Electron app is not penalised for mapping the same libraries repeatedly.
 
 So: lower RSS than the Electron client, slightly **higher** PSS.
 
-Voice Flow reserves **~2.5 GiB of VRAM** while running (1228 MiB Whisper +
-1298 MiB Ollama, both held resident on purpose so no utterance pays a model
-load). Because `cleaner.keep_alive` defaults to `-1`, the cleanup model never
-unloads. How much is left is a property of your session, not of Voice Flow — on
-this 8 GiB card with a compositor, a browser, and an editor also on the GPU,
-`nvidia-smi` reports 3.4 GiB free. Set `cleaner.keep_alive` to `"5m"` to trade
-first-dictation latency for ~1.3 GiB back when idle.
+Voice Flow reserves **~2.5 GiB of VRAM** while running: 1228 MiB for Whisper and
+1298 MiB for the Ollama cleanup model, both held resident on purpose so no
+utterance pays a model load. Because `cleaner.keep_alive` defaults to `-1`, the
+cleanup model never unloads.
+
+That leaves ~5.5 GiB on an otherwise-idle 8 GiB card, minus whatever the rest of
+your desktop puts on the GPU — a compositor, browser, and editor together
+accounted for another ~690 MiB on the machine these figures come from. Set
+`cleaner.keep_alive` to `"5m"` to reclaim ~1.3 GiB when idle, at the cost of a
+reload on the first dictation after a pause.
 
 ## Requirements
 

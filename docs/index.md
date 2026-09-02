@@ -16,7 +16,7 @@ machine.
 !!! warning "This is not a memory optimisation"
 
     Running inference locally costs about as much host RAM as a cloud client,
-    and adds ~2.4 GB of VRAM on top. The wins are privacy, offline operation,
+    and adds ~3.5 GB of VRAM on top. The wins are privacy, offline operation,
     and no subscription — not footprint.
 
 ## Benchmarks
@@ -46,8 +46,8 @@ median of 5–7 warm runs. Reproduce with `scripts/benchmark.py`.
 
 | Process                      | RSS     | PSS     | VRAM     |
 | ---------------------------- | ------- | ------- | -------- |
-| `voice-flow` daemon          | 1231 MB | 1221 MB | 1146 MiB |
-| `ollama` + `llama-server`    | 667 MB  | —       | 1296 MiB |
+| `voice-flow` daemon          | 1231 MB | 1221 MB | 1228 MiB |
+| `ollama` + `llama-server`    | 667 MB  | —       | 2372 MiB |
 | A commercial Electron client | 1977 MB | 1014 MB | ~60 MiB  |
 
 PSS charges shared pages once, which is the fair way to compare a 14-process

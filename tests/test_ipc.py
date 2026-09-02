@@ -187,6 +187,93 @@ def test_daemon_framed_server_loop(
 @patch("voice_flow.daemon.TextInjector")
 @patch("voice_flow.daemon.AudioRecorder")
 @patch("voice_flow.daemon.GlobalHotkeyListener")
+def test_daemon_stop_unlinks_only_the_socket_it_bound(
+    mock_hotkey_cls,
+    mock_recorder_cls,
+    mock_injector_cls,
+    mock_cleaner_cls,
+    mock_transcriber_cls,
+    tmp_path,
+    monkeypatch,
+):
+    """A runtime dir that changes between bind and stop must not cost another process its socket."""
+    from voice_flow.daemon import VoiceFlowDaemon
+
+    served = tmp_path / "served"
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(served))
+    config = {
+        "stt": {"device": "cpu", "model_size": "tiny"},
+        "cleaner": {"enabled": False},
+        "ui": {"restore_clipboard": False},
+        "audio": {"temp_file": "auto"},
+        "hotkey": {"enabled": False},
+    }
+    daemon = VoiceFlowDaemon(config)
+
+    server_thread = threading.Thread(target=daemon.start_server)
+    server_thread.daemon = True
+    server_thread.start()
+
+    bound = served / "voice-flow" / "daemon.sock"
+    for _ in range(50):
+        if bound.exists():
+            break
+        time.sleep(0.05)
+    assert bound.exists()
+    assert send_to_daemon({"action": "ping"}) == {"status": "pong"}
+
+    # Somebody else's runtime dir, holding a socket that must survive.
+    foreign = tmp_path / "foreign"
+    foreign_sock = foreign / "voice-flow" / "daemon.sock"
+    foreign_sock.parent.mkdir(parents=True)
+    foreign_sock.touch()
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(foreign))
+
+    daemon.stop()
+
+    assert not bound.exists(), "the daemon must remove the socket it bound"
+    assert foreign_sock.exists(), "stop() unlinked a socket this daemon never bound"
+
+
+@patch("voice_flow.daemon.Transcriber")
+@patch("voice_flow.daemon.TextCleaner")
+@patch("voice_flow.daemon.TextInjector")
+@patch("voice_flow.daemon.AudioRecorder")
+@patch("voice_flow.daemon.GlobalHotkeyListener")
+def test_daemon_stop_without_serving_unlinks_nothing(
+    mock_hotkey_cls,
+    mock_recorder_cls,
+    mock_injector_cls,
+    mock_cleaner_cls,
+    mock_transcriber_cls,
+    tmp_path,
+    monkeypatch,
+):
+    from voice_flow.daemon import VoiceFlowDaemon
+
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
+    stray = get_socket_path()
+    stray.touch()
+
+    daemon = VoiceFlowDaemon(
+        {
+            "stt": {"device": "cpu", "model_size": "tiny"},
+            "cleaner": {"enabled": False},
+            "ui": {"restore_clipboard": False},
+            "audio": {"temp_file": "auto"},
+            "hotkey": {"enabled": False},
+        }
+    )
+    daemon.stop()
+
+    assert stray.exists(), "a daemon that never bound a socket must not unlink one"
+
+
+@patch("voice_flow.daemon.Transcriber")
+@patch("voice_flow.daemon.TextCleaner")
+@patch("voice_flow.daemon.TextInjector")
+@patch("voice_flow.daemon.AudioRecorder")
+@patch("voice_flow.daemon.GlobalHotkeyListener")
 def test_daemon_process_audio_passes_detected_language_to_cleaner(
     mock_hotkey_cls,
     mock_recorder_cls,
@@ -252,9 +339,10 @@ def test_daemon_signal_handling_and_lifecycle(
 
     daemon = VoiceFlowDaemon(config)
 
-    # Create dummy socket file to test that shutdown unlinks it
+    # Represent a socket this daemon bound and verify signal shutdown unlinks it.
     sock_path.parent.mkdir(parents=True, exist_ok=True)
     sock_path.touch()
+    daemon.socket_path = sock_path
     assert sock_path.exists()
 
     # Register signals in main thread

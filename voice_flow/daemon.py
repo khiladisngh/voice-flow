@@ -17,6 +17,8 @@ class VoiceFlowDaemon:
     def __init__(self, config: dict):
         self.config = config
         self._shutting_down = False
+        # Holds the path this daemon actually bound so shutdown cannot unlink another process's socket.
+        self.socket_path = None
         stt_cfg = config.get("stt", {})
         cleaner_cfg = config.get("cleaner", {})
         ui_cfg = config.get("ui", {})
@@ -144,10 +146,9 @@ class VoiceFlowDaemon:
                 self.hotkey_listener.stop()
             except Exception:
                 pass
-        socket_path = get_socket_path()
-        if socket_path.exists():
+        if self.socket_path and self.socket_path.exists():
             try:
-                socket_path.unlink()
+                self.socket_path.unlink()
             except Exception:
                 pass
         if getattr(self, "server", None):
@@ -158,14 +159,14 @@ class VoiceFlowDaemon:
 
     def start_server(self):
         get_runtime_dir()  # side effect: creates $XDG_RUNTIME_DIR/voice-flow at mode 0700
-        socket_path = get_socket_path()
-        if socket_path.exists():
-            socket_path.unlink()
+        self.socket_path = get_socket_path()
+        if self.socket_path.exists():
+            self.socket_path.unlink()
 
         self.server = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-        self.server.bind(str(socket_path))
+        self.server.bind(str(self.socket_path))
         self.server.listen(5)
-        print(f"[Daemon] Listening on Unix socket: {socket_path}")
+        print(f"[Daemon] Listening on Unix socket: {self.socket_path}")
 
         self.register_signal_handlers()
         try:

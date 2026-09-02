@@ -30,7 +30,7 @@ graph LR
 
 Boundary types: hotkey callback (`None`) → WAV file on disk (`str` path) →
 `Transcriber.transcribe(path) -> tuple[str, str, float]` (text, language, duration) →
-`TextCleaner.clean(str) -> str` → `TextInjector.paste(str) -> bool`.
+`TextCleaner.clean(str, language=None) -> str` → `TextInjector.paste(str) -> bool`.
 
 **Process model.** `daemon.py` is the resident service holding warm STT/LLM models; `main.py` is both
 the CLI and the socket client. `main.py` never imports heavy deps at module scope — `Transcriber`,
@@ -110,8 +110,9 @@ is `toggle`: `toggle`, `record-start`, `record-stop`, `daemon`, `status`.
   introduce `logging` for one module only.
 - **No custom exception hierarchy.** Built-ins only (`ConnectionError`, `OSError`, `TimeoutError`, …).
 - **Fail open, never lose the transcript.** `TextCleaner.clean()` must never raise: on non-200,
-  timeout, or network error it prints a notice and returns `raw_text` verbatim. `TextInjector.paste()`
-  returns `False` rather than raising when `/dev/uinput` is unopenable.
+  timeout, network error, or a transcript longer than 500 words it prints a notice and returns
+  `raw_text` verbatim. `TextInjector.paste()` returns `False` rather than raising when `/dev/uinput`
+  is unopenable.
 - **No async.** Concurrency is `threading` + `selectors` only.
 - **Dependency injection is constructor keyword args with defaults** (`TextCleaner(model=..., temperature=...)`);
   `daemon.py` builds each component from the config dict. There is no DI container and no global singletons.

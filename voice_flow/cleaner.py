@@ -117,7 +117,10 @@ class TextCleaner:
                 json=self._payload("Reply with OK.", 1),
                 timeout=self.timeout,
             )
-            return resp.status_code == 200
+            if resp.status_code != 200:
+                print(f"[Cleaner] Warm-up failed for {self.model}: Ollama returned HTTP {resp.status_code}")
+                return False
+            return True
         except Exception as exc:
             print(f"[Cleaner] Warm-up failed ({exc.__class__.__name__}); cleanup may be slow on first use")
             return False
@@ -162,6 +165,9 @@ class TextCleaner:
                 return raw_text
 
             cleaned = _strip_think(resp.json().get("response", "")).strip()
+            if cleaned.startswith("<think>") or "</think>" in cleaned:
+                print("[Cleaner] Ollama returned malformed thinking output; pasting raw transcript")
+                return raw_text
             if not cleaned:
                 print("[Cleaner] Ollama returned an empty response; pasting raw transcript")
                 return raw_text

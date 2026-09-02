@@ -18,7 +18,7 @@ REPO_URL="${VOICE_FLOW_REPO:-https://github.com/khiladisngh/voice-flow.git}"
 INSTALL_DIR="${VOICE_FLOW_DIR:-$HOME/.local/share/voice-flow}"
 REF="${VOICE_FLOW_REF:-main}"
 UNIT_DIR="$HOME/.config/systemd/user"
-CLEANUP_MODEL="qwen2.5:1.5b"
+CLEANUP_MODEL="hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M"
 
 if [ -t 1 ] && [ -z "${NO_COLOR:-}" ]; then
     B=$(printf '\033[1m'); R=$(printf '\033[0m')
@@ -146,10 +146,10 @@ fi
 if [ "${VOICE_FLOW_NO_MODEL:-}" = "1" ]; then
     info "Skipping Ollama model (VOICE_FLOW_NO_MODEL=1)"
 elif have ollama; then
-    if ollama list 2>/dev/null | grep -q "^$CLEANUP_MODEL"; then
+    if ollama list 2>/dev/null | awk '{print $1}' | grep -qxF -- "$CLEANUP_MODEL"; then
         info "Ollama cleanup model already present"
     else
-        info "Pulling Ollama cleanup model $CLEANUP_MODEL (~1 GB)"
+        info "Pulling Ollama cleanup model $CLEANUP_MODEL (~2 GB)"
         ollama pull "$CLEANUP_MODEL" || warn "Model pull failed; cleanup will fall back to raw transcripts."
     fi
 else

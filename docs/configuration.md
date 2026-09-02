@@ -195,7 +195,7 @@ containing instruction-like phrasing cannot rewrite the system prompt.
 
 ### Model choices
 
-Measured on an RTX 3070 (8 GB) with Whisper `large-v3-turbo` resident and a desktop session open:
+Measured on an RTX 3070 (8 GB) with Whisper `large-v3-turbo` resident, a desktop session open, and the ~40-word samples in [`scripts/cleaner_probe.py`](../scripts/cleaner_probe.py):
 
 | Model                                  | VRAM    | Latency (p50)                   | Notes                                                                                                                                       |
 | -------------------------------------- | ------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -210,9 +210,10 @@ on the card.
 ### `cleaner.options`
 
 Leave `cleaner.options` at `{}` to let Ollama place the model automatically.
-When the GPU was under pressure, Ollama put 58% of the 2B model on the CPU and
-cleanup took 6–7 s per utterance. The 0.8B model spilled 18% to the CPU and
-took 1.3–1.8 s.
+Placement, not the default setting itself, determines latency: when Ollama
+placed 58% of the 2B model on the CPU, cleanup took 6–7 s per utterance; with
+full GPU placement it took ~0.2–0.4 s. The 0.8B model took 1.3–1.8 s when 18%
+spilled to the CPU.
 
 Set `{"num_gpu": 999}` only as an opt-in when the GPU is otherwise free. It
 forces full GPU offload, dropping cleanup to ~0.2–0.4 s. On a card already

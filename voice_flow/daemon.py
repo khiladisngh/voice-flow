@@ -48,6 +48,11 @@ class VoiceFlowDaemon:
             # Pay the model-load cost now, not on the user's first dictation.
             if self.cleaner.warm_up():
                 print("[Daemon] Cleaner model warm and pinned in VRAM")
+            else:
+                print(
+                    "[Daemon] Cleaner model unavailable; cleanup will fall back to raw transcripts "
+                    "until the model is available"
+                )
 
         self.injector = TextInjector(restore_clipboard=ui_cfg.get("restore_clipboard", True))
         temp_file = audio_cfg.get("temp_file", "auto")

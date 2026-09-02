@@ -218,28 +218,28 @@ Voice Flow reads `config.json` from the project root. The shipped defaults:
 }
 ```
 
-| Key                         | Meaning                                                                                                   |
-| --------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `hotkey.enabled`            | Whether the daemon grabs the global hotkey at all. Disable to drive Voice Flow purely from the CLI.       |
-| `hotkey.combo`              | The `evdev` key names that must be held together. Defaults to `Right Ctrl` + `Right Alt`.                 |
-| `hotkey.hold_threshold_sec` | Press duration that separates a tap (toggle mode) from a hold (push-to-talk). Defaults to `0.45` seconds. |
-| `stt.model_size`            | faster-whisper model to load, e.g. `large-v3-turbo`, `medium`, `small`. Smaller is faster and less exact. |
-| `stt.device`                | `cuda` for GPU inference, `cpu` to run without an NVIDIA card.                                            |
-| `stt.compute_type`          | CTranslate2 quantisation. `int8_float16` is the measured sweet spot on the RTX 3070; use `int8` on CPU.   |
-| `stt.language`              | Force a language code such as `"en"`, or leave `null` to autodetect per utterance.                        |
-| `cleaner.enabled`           | Send transcripts through the local LLM for punctuation and filler removal. `false` pastes the raw text.   |
-| `cleaner.ollama_url`        | Local Ollama generate endpoint. Change only if Ollama listens elsewhere.                                  |
-| `cleaner.model`             | Ollama model used for cleanup. Default `hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M`; any pulled model works.    |
-| `cleaner.temperature`       | Sampling temperature for cleanup. Keep it low so the model edits rather than rewrites.                    |
-| `cleaner.timeout_sec`       | Client timeout per request. Default `15.0`; slower requests paste the raw transcript instead.             |
-| `cleaner.keep_alive`        | How long Ollama holds the model in VRAM. Default `-1` pins it indefinitely.                               |
-| `cleaner.options`           | Extra Ollama options for the model, e.g. `{"num_gpu": 999}` on an 8 GB GPU.                               |
-| `audio.sample_rate`         | Capture rate in Hz. Whisper expects `16000`; changing it forces a resample.                               |
-| `audio.channels`            | Capture channel count. Mono (`1`) is what the models want.                                                |
-| `audio.temp_file`           | Where the WAV is written. `auto` resolves to `$XDG_RUNTIME_DIR/voice-flow`.                               |
-| `ui.sound_feedback`         | Play a short cue when recording starts and stops.                                                         |
-| `ui.notifications`          | Emit desktop notifications for recording and paste events.                                                |
-| `ui.restore_clipboard`      | Put your previous clipboard contents back after the paste, so dictation does not clobber what you copied. |
+| Key                         | Meaning                                                                                                                                                  |
+| --------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hotkey.enabled`            | Whether the daemon grabs the global hotkey at all. Disable to drive Voice Flow purely from the CLI.                                                      |
+| `hotkey.combo`              | The `evdev` key names that must be held together. Defaults to `Right Ctrl` + `Right Alt`.                                                                |
+| `hotkey.hold_threshold_sec` | Press duration that separates a tap (toggle mode) from a hold (push-to-talk). Defaults to `0.45` seconds.                                                |
+| `stt.model_size`            | faster-whisper model to load, e.g. `large-v3-turbo`, `medium`, `small`. Smaller is faster and less exact.                                                |
+| `stt.device`                | `cuda` for GPU inference, `cpu` to run without an NVIDIA card.                                                                                           |
+| `stt.compute_type`          | CTranslate2 quantisation. `int8_float16` is the measured sweet spot on the RTX 3070; use `int8` on CPU.                                                  |
+| `stt.language`              | Force a language code such as `"en"`, or leave `null` to autodetect per utterance.                                                                       |
+| `cleaner.enabled`           | Send transcripts through the local LLM for punctuation and filler removal. `false` pastes the raw text.                                                  |
+| `cleaner.ollama_url`        | Local Ollama generate endpoint. Change only if Ollama listens elsewhere.                                                                                 |
+| `cleaner.model`             | Ollama model used for cleanup. Default `hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M`; any pulled model works.                                                   |
+| `cleaner.temperature`       | Sampling temperature for cleanup. Keep it low so the model edits rather than rewrites.                                                                   |
+| `cleaner.timeout_sec`       | Client timeout per request. Default `15.0`; slower requests paste the raw transcript instead.                                                            |
+| `cleaner.keep_alive`        | How long Ollama holds the model in VRAM. Default `-1` pins it indefinitely.                                                                              |
+| `cleaner.options`           | Leave `{}` for automatic placement. `{"num_gpu": 999}` is only for an otherwise-free GPU; see [`cleaner.options`](docs/configuration.md#cleaneroptions). |
+| `audio.sample_rate`         | Capture rate in Hz. Whisper expects `16000`; changing it forces a resample.                                                                              |
+| `audio.channels`            | Capture channel count. Mono (`1`) is what the models want.                                                                                               |
+| `audio.temp_file`           | Where the WAV is written. `auto` resolves to `$XDG_RUNTIME_DIR/voice-flow`.                                                                              |
+| `ui.sound_feedback`         | Play a short cue when recording starts and stops.                                                                                                        |
+| `ui.notifications`          | Emit desktop notifications for recording and paste events.                                                                                               |
+| `ui.restore_clipboard`      | Put your previous clipboard contents back after the paste, so dictation does not clobber what you copied.                                                |
 
 ## Architecture
 

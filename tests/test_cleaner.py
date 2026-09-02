@@ -225,6 +225,22 @@ def test_clean_think_only_response_falls_back_to_raw():
         assert cleaner.clean("words that need cleaning up") == "words that need cleaning up"
 
 
+def test_clean_unterminated_think_response_falls_back_to_raw(capsys):
+    cleaner = TextCleaner()
+    raw_text = "words that need cleaning up"
+    with patch.object(cleaner.session, "post", return_value=_ok_response("<think>unfinished reasoning")):
+        assert cleaner.clean(raw_text) == raw_text
+    assert "[Cleaner]" in capsys.readouterr().out
+
+
+def test_clean_stray_think_close_response_falls_back_to_raw(capsys):
+    cleaner = TextCleaner()
+    raw_text = "words that need cleaning up"
+    with patch.object(cleaner.session, "post", return_value=_ok_response("</think>")):
+        assert cleaner.clean(raw_text) == raw_text
+    assert "[Cleaner]" in capsys.readouterr().out
+
+
 def test_system_prompt_has_no_code_like_examples():
     # Measured: file-name examples in the prompt made Qwen3.5-2B emit a fake TOML block.
     for token in (".py", ".toml", "git ", "`"):
@@ -236,10 +252,10 @@ def test_clean_long_transcript_skips_llm_and_returns_raw(capsys):
     raw_text = " ".join(["word"] * 501)
     with patch.object(cleaner.session, "post") as post:
         assert cleaner.clean(raw_text) == raw_text
+    post.assert_not_called()
     output = capsys.readouterr().out
     assert "[Cleaner]" in output
     assert "501 words" in output
-    post.assert_not_called()
 
 
 def test_clean_at_word_limit_still_calls_llm():
@@ -259,6 +275,18 @@ def test_warm_up_posts_thinking_disabled_payload():
     body = post.call_args.kwargs["json"]
     assert body["think"] is False
     assert body["options"]["num_ctx"] == 4096
+
+
+def test_warm_up_http_error_returns_false_and_prints_model(capsys):
+    cleaner = TextCleaner(model="missing-model")
+    mock_resp = MagicMock()
+    mock_resp.status_code = 404
+    with patch.object(cleaner.session, "post", return_value=mock_resp):
+        assert cleaner.warm_up() is False
+    output = capsys.readouterr().out
+    assert "[Cleaner]" in output
+    assert "missing-model" in output
+    assert "404" in output
 
 
 def test_payload_does_not_mutate_caller_options_and_allows_num_ctx_override():

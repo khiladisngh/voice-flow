@@ -106,7 +106,7 @@ class VoiceFlow < Formula
         Debian:  sudo apt install pipewire-bin wl-clipboard
 
       Transcript cleanup needs Ollama (https://ollama.com):
-        ollama pull qwen2.5:1.5b
+        ollama pull hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M
 
       This formula installs CPU-only dependencies. For NVIDIA acceleration use
       the standalone installer, which handles the CUDA wheels:

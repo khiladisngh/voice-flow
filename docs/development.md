@@ -233,13 +233,20 @@ imports `ctranslate2`, and the 2.2 GB download would dominate every run.
 
 ## Release procedure
 
-Maintainers only. The version lives in `pyproject.toml` and is mirrored in
+Maintainers only. Voice Flow follows a weekly release cycle where feature and fix PRs land on `develop`, and `develop` is merged to `main` over weekends for release.
+
+The version lives in `pyproject.toml` and is mirrored in
 `voice_flow/__init__.py` as `__version__`; `bump-my-version` updates both plus
 `CHANGELOG.md` in one commit.
 
-1. **Land everything and write the changelog.** Ensure `## [Unreleased]` in
+1. **Merge `develop` into `main` and write the changelog.** Ensure `## [Unreleased]` in
    `CHANGELOG.md` describes the release under Keep a Changelog headings
    (`Added`, `Changed`, `Fixed`, `Security`).
+
+   ```bash
+   git checkout main
+   git merge --ff-only develop
+   ```
 
 2. **Verify a clean tree.** `bumpversion` is configured with
    `allow_dirty = false` and will refuse otherwise.

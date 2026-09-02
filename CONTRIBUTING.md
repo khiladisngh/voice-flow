@@ -105,14 +105,25 @@ uvx pre-commit install
   `Fixed` / `Removed` / `Security` subsection. Do not edit released sections and
   do not bump the version yourself — releases do that.
 - Keep the description focused on _why_; the diff already shows _what_.
+- Target the **`develop`** branch for pull requests.
 
-## Release
+## Release & Branching
 
-Maintainers only.
+Voice Flow follows a weekly release cycle:
+
+- **`develop`**: The active integration branch during the week. Features and fixes land here.
+- **`main`**: The production release branch. Over weekends, `develop` is merged into `main`, and a release is cut.
+
+Release steps (maintainers only, on `main`):
 
 ```bash
+git checkout main
+git merge --ff-only develop
 .venv/bin/bump-my-version bump patch   # or: minor | major
-git push --follow-tags
+git push origin main --follow-tags
+git checkout develop
+git merge --ff-only main
+git push origin develop
 ```
 
 `bump-my-version` rewrites the version in `pyproject.toml` and

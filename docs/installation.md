@@ -28,20 +28,30 @@ Verify both are on `PATH`:
 command -v pw-record wl-copy wl-paste
 ```
 
-## 2. Join the `input` group
+## 2. Join the `input` group and ensure `/dev/uinput` is writable
 
 The daemon reads keyboard events from `/dev/input/event*` and writes synthetic
-keystrokes to `/dev/uinput`. On most distributions both are owned by the `input`
-group.
+keystrokes to `/dev/uinput`. On many distributions `/dev/input/event*` is owned by
+the `input` group, while `/dev/uinput` requires a udev rule to allow `input` group write access.
+
+Add yourself to the `input` group:
 
 ```bash
 sudo usermod -aG input $USER
 ```
 
+Ensure `/dev/uinput` is automatically granted `input` group write permissions:
+
+```bash
+echo 'KERNEL=="uinput", SUBSYSTEM=="misc", GROUP="input", MODE="0660", OPTIONS+="static_node=uinput", TAG+="uaccess"' | sudo tee /etc/udev/rules.d/99-uinput.rules
+echo uinput | sudo tee /etc/modules-load.d/uinput.conf
+sudo udevadm control --reload-rules && sudo udevadm trigger /dev/uinput
+```
+
 !!! warning "A re-login is required"
-Group membership is only applied to new login sessions. Log out and back in
-(or reboot) before continuing — `newgrp` is not enough, because the systemd
-user manager that will run the daemon inherits its groups from the session.
+    Group membership is only applied to new login sessions. Log out and back in
+    (or reboot) before continuing — `newgrp` is not enough, because the systemd
+    user manager that will run the daemon inherits its groups from the session.
 
 Confirm afterwards:
 
@@ -50,13 +60,7 @@ id -nG | tr ' ' '\n' | grep -x input
 test -w /dev/uinput && echo "uinput writable"
 ```
 
-Both must succeed. If `/dev/uinput` is still not writable, the `uinput` kernel
-module may not be loaded:
-
-```bash
-sudo modprobe uinput
-echo uinput | sudo tee /etc/modules-load.d/uinput.conf
-```
+Both must succeed before running the daemon.
 
 ## 3. Install `uv`
 

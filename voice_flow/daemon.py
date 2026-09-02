@@ -81,7 +81,10 @@ class VoiceFlowDaemon:
         audio_file = self.recorder.stop()
         if audio_file:
             result = self.process_audio(audio_file)
-            print(f'[Daemon] Transcribed & Pasted: "{result.get("cleaned")}" ({result.get("total_ms")}ms)')
+            pasted_str = "Pasted" if result.get("pasted") else "Paste FAILED (check /dev/uinput)"
+            print(
+                f'[Daemon] Transcribed & {pasted_str}: "{result.get("cleaned")}" ({result.get("total_ms")}ms)'
+            )
 
     def process_audio(self, audio_path: str) -> dict:
         t0 = time.time()
@@ -96,8 +99,9 @@ class VoiceFlowDaemon:
             t_clean = time.time() - t1
 
         # Paste into active window
+        pasted = False
         if final_text:
-            self.injector.paste(final_text)
+            pasted = bool(self.injector.paste(final_text))
 
         total_ms = (time.time() - t0) * 1000
         return {
@@ -106,6 +110,7 @@ class VoiceFlowDaemon:
             "cleaned": final_text,
             "language": lang,
             "duration": duration,
+            "pasted": pasted,
             "stt_ms": round(t_stt * 1000, 1),
             "clean_ms": round(t_clean * 1000, 1),
             "total_ms": round(total_ms, 1),

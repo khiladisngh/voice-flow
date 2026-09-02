@@ -140,7 +140,7 @@ def test_injector_context_manager():
     mock_close.assert_called_once()
 
 
-def test_injector_init_failure_handled_gracefully():
+def test_injector_init_failure_handled_gracefully(capsys):
     with patch("voice_flow.injector.evdev.UInput", side_effect=PermissionError("Permission denied")):
         injector = TextInjector(restore_clipboard=False)
         assert injector.ui is None
@@ -148,3 +148,6 @@ def test_injector_init_failure_handled_gracefully():
         assert res is False
         injector.close()
         assert injector.ui is None
+    captured = capsys.readouterr()
+    assert "Failed to initialize uinput device" in captured.out
+    assert "Cannot paste: virtual keyboard unavailable" in captured.out

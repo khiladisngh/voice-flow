@@ -318,13 +318,16 @@ access:
 test -w /dev/uinput && echo writable || echo "NOT writable"
 ```
 
-If it is not writable, the `input` group fix above applies here too; if the device
-node does not exist at all, load the module:
+If it is not writable, configure the persistent udev rule and ensure the module is loaded:
 
 ```bash
-sudo modprobe uinput
+echo 'KERNEL=="uinput", SUBSYSTEM=="misc", GROUP="input", MODE="0660", OPTIONS+="static_node=uinput", TAG+="uaccess"' | sudo tee /etc/udev/rules.d/99-uinput.rules
 echo uinput | sudo tee /etc/modules-load.d/uinput.conf
+sudo modprobe uinput
+sudo udevadm control --reload-rules && sudo udevadm trigger /dev/uinput
 ```
+
+Also make sure your user is a member of the `input` group (`id -nG | grep -w input`).
 
 ## Nothing above matches
 

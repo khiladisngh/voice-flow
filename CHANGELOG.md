@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+
+- Virtual keyboard injection failure due to `/dev/uinput` permissions: documented and automated the persistent udev rule (`99-uinput.rules`) for modern systemd/Wayland distributions.
+- Silent paste failure handling: `TextInjector` now logs explicit errors when `/dev/uinput` cannot be opened or when pasting fails instead of silently swallowing exceptions.
+- Accurate paste status reporting: `daemon.py` and `main.py` now track `pasted` boolean status and log `Transcribed & Pasted` or `Transcribed & Paste FAILED` accordingly.
+
+### Added
+
+- Added `/dev/uinput` writability check to `voice-flow status` command and preflight checks in `install.sh`.
+
 ## [0.1.1] - 2026-09-02
 
 ### Fixed

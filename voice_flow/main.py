@@ -1,4 +1,5 @@
 import json
+import os
 import signal
 import socket
 import sys
@@ -75,11 +76,12 @@ def run_standalone_process(config: dict, audio_path: str):
         )
         final_text = cleaner.clean(raw_text)
 
+    pasted = False
     if final_text:
         injector = TextInjector(restore_clipboard=ui_cfg.get("restore_clipboard", True))
-        injector.paste(final_text)
+        pasted = bool(injector.paste(final_text))
 
-    return {"status": "ok", "raw": raw_text, "cleaned": final_text}
+    return {"status": "ok", "raw": raw_text, "cleaned": final_text, "pasted": pasted}
 
 
 def build_recorder(config: dict) -> AudioRecorder:
@@ -113,12 +115,14 @@ def handle_toggle(config: dict):
         # Attempt sending to warm daemon first (for ~200ms latency)
         try:
             res = send_to_daemon({"action": "process", "audio_path": audio_file})
-            print(f"Pasted: {res.get('cleaned')} ({res.get('total_ms')}ms)")
+            pasted_tag = "Pasted" if res.get("pasted", True) else "Paste FAILED"
+            print(f"{pasted_tag}: {res.get('cleaned')} ({res.get('total_ms')}ms)")
         except (TimeoutError, ConnectionError, Exception):
             # Fallback to standalone mode if daemon is not running
             print("Daemon not running, processing standalone...")
             res = run_standalone_process(config, audio_file)
-            print(f"Pasted: {res.get('cleaned')}")
+            pasted_tag = "Pasted" if res.get("pasted", True) else "Paste FAILED"
+            print(f"{pasted_tag}: {res.get('cleaned')}")
     else:
         recorder.start()
         print("Listening... (Press hotkey again to finish & paste)")
@@ -150,10 +154,12 @@ def main():
         if audio_file:
             try:
                 res = send_to_daemon({"action": "process", "audio_path": audio_file})
-                print(f"Pasted: {res.get('cleaned')} ({res.get('total_ms')}ms)")
+                pasted_tag = "Pasted" if res.get("pasted", True) else "Paste FAILED"
+                print(f"{pasted_tag}: {res.get('cleaned')} ({res.get('total_ms')}ms)")
             except Exception:
                 res = run_standalone_process(config, audio_file)
-                print(f"Pasted: {res.get('cleaned')}")
+                pasted_tag = "Pasted" if res.get("pasted", True) else "Paste FAILED"
+                print(f"{pasted_tag}: {res.get('cleaned')}")
     elif cmd == "daemon":
         handle_daemon(config)
     elif cmd == "status":
@@ -165,8 +171,10 @@ def main():
             except Exception:
                 pass
         rec = AudioRecorder()
+        uinput_ok = os.access("/dev/uinput", os.W_OK)
         print(f"Daemon running: {'YES (warm in GPU)' if daemon_ok else 'NO'}")
         print(f"Recording active: {rec.is_recording()}")
+        print(f"Uinput writable: {'YES' if uinput_ok else 'NO (cannot synthesize paste)'}")
     else:
         print(f"Unknown command: {cmd}")
         print("Usage: voice-flow [toggle|record-start|record-stop|daemon|status]")

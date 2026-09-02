@@ -15,8 +15,9 @@ class TextInjector:
         try:
             self.ui = evdev.UInput(name="voice-flow-virtual-kb")
             time.sleep(0.05)
-        except Exception:
+        except Exception as exc:
             self.ui = None
+            print(f"[Injector] Failed to initialize uinput device: {exc}")
 
     def close(self):
         if self.ui is not None:
@@ -71,6 +72,7 @@ class TextInjector:
             self._init_uinput()
 
         if self.ui is None:
+            print("[Injector] Cannot paste: virtual keyboard unavailable (check /dev/uinput permissions).")
             return False
 
         success = False

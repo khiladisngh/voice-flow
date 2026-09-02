@@ -133,6 +133,14 @@ else
     NEEDS_RELOGIN=0
 fi
 
+if [ -e /dev/uinput ] && [ ! -w /dev/uinput ]; then
+    warn "/dev/uinput exists but is not writable by $(id -un)."
+    printf '  fix with:\n'
+    printf '    echo '\''KERNEL=="uinput", SUBSYSTEM=="misc", GROUP="input", MODE="0660", OPTIONS+="static_node=uinput", TAG+="uaccess"'\'' | sudo tee /etc/udev/rules.d/99-uinput.rules\n'
+    printf '    echo uinput | sudo tee /etc/modules-load.d/uinput.conf\n'
+    printf '    sudo udevadm control --reload-rules && sudo udevadm trigger /dev/uinput\n'
+fi
+
 # ------------------------------------------------------------- cleanup model --
 
 if [ "${VOICE_FLOW_NO_MODEL:-}" = "1" ]; then

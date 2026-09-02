@@ -108,6 +108,17 @@ It synthesizes speech with `espeak-ng`, runs it through the real transcriber
 and cleaner, and prints medians over warm runs plus RSS/PSS from
 `/proc/<pid>/smaps_rollup`. Every figure in the README comes from this script.
 
+### Evaluating a cleaner model
+
+Before changing `cleaner.model`, run the probe against the candidate. It uses the
+real prompt and a fixed set of English, Hindi, Hinglish and German dictations, and
+prints latency plus the output so you can see whether the model translates,
+answers, or leaves fillers behind:
+
+```bash
+.venv/bin/python scripts/cleaner_probe.py hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M --num-gpu 999
+```
+
 ### Test-writing conventions
 
 - **Isolate the runtime directory.** Every test that touches paths sets

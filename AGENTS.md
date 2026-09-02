@@ -57,14 +57,14 @@ loop. Recording state itself lives on disk in `recorder.pid`, probed with `os.ki
 
 ## Key Directories
 
-| Path                  | Purpose                                                            |
-| --------------------- | ------------------------------------------------------------------ |
-| `voice_flow/`         | The entire package — nine flat modules, no subpackages.            |
-| `tests/`              | Pytest suite, one file per source module.                          |
-| `docs/`               | Zensical/MkDocs site published to GitHub Pages.                    |
-| `plans/`              | Engineering plans. **MUST stay outside `docs/`** (see Docs below). |
-| `scripts/`            | `benchmark.py` only.                                               |
-| `packaging/homebrew/` | Formula source of truth for the `homebrew-voice-flow` tap.         |
+| Path                  | Purpose                                                                                     |
+| --------------------- | ------------------------------------------------------------------------------------------- |
+| `voice_flow/`         | The entire package — nine flat modules, no subpackages.                                     |
+| `tests/`              | Pytest suite, one file per source module.                                                   |
+| `docs/`               | Zensical/MkDocs site published to GitHub Pages.                                             |
+| `plans/`              | Engineering plans. **MUST stay outside `docs/`** (see Docs below).                          |
+| `scripts/`            | `benchmark.py` and `cleaner_probe.py` (evaluate a candidate cleaner model before swapping). |
+| `packaging/homebrew/` | Formula source of truth for the `homebrew-voice-flow` tap.                                  |
 
 ## Development Commands
 

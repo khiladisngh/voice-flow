@@ -64,16 +64,17 @@ Electron app is not penalised for mapping the same libraries repeatedly.
 
 So: lower RSS than the Electron client, slightly **higher** PSS.
 
-Voice Flow reserves **~2.5 GiB of VRAM** while running: 1228 MiB for Whisper and
-1298 MiB for the Ollama cleanup model, both held resident on purpose so no
-utterance pays a model load. Because `cleaner.keep_alive` defaults to `-1`, the
-cleanup model never unloads.
+Voice Flow reserves **~3.5 GiB of VRAM** while running: 1228 MiB for Whisper and
+2372 MiB for the Ollama cleaner's `llama-server`, both held resident on purpose
+so no utterance pays a model load. Because `cleaner.keep_alive` defaults to `-1`,
+the cleanup model never unloads.
 
-That leaves ~5.5 GiB on an otherwise-idle 8 GiB card, minus whatever the rest of
+That leaves ~4.4 GiB on an otherwise-idle 8 GiB card, minus whatever the rest of
 your desktop puts on the GPU — a compositor, browser, and editor together
 accounted for another ~690 MiB on the machine these figures come from. Set
-`cleaner.keep_alive` to `"5m"` to reclaim ~1.3 GiB when idle, at the cost of a
-reload on the first dictation after a pause.
+`cleaner.keep_alive` to `"5m"` to reclaim ~2.3 GiB when idle, at the cost of a
+reload on the first dictation after a pause. The low-VRAM
+`Qwen3.5-0.8B Q8_0` alternative uses 1394 MiB.
 
 ## Requirements
 
@@ -200,6 +201,8 @@ Voice Flow reads `config.json` from the project root. The shipped defaults:
     "ollama_url": "http://localhost:11434/api/generate",
     "model": "hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M",
     "temperature": 0.1,
+    "timeout_sec": 15.0,
+    "keep_alive": -1,
     "options": {}
   },
   "audio": {
@@ -227,8 +230,10 @@ Voice Flow reads `config.json` from the project root. The shipped defaults:
 | `cleaner.enabled`           | Send transcripts through the local LLM for punctuation and filler removal. `false` pastes the raw text.   |
 | `cleaner.ollama_url`        | Local Ollama generate endpoint. Change only if Ollama listens elsewhere.                                  |
 | `cleaner.model`             | Ollama model used for cleanup. Default `hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M`; any pulled model works.    |
-| `cleaner.options`           | Extra Ollama options for the model, e.g. `{"num_gpu": 999}` on an 8 GB GPU.                               |
 | `cleaner.temperature`       | Sampling temperature for cleanup. Keep it low so the model edits rather than rewrites.                    |
+| `cleaner.timeout_sec`       | Client timeout per request. Default `15.0`; slower requests paste the raw transcript instead.             |
+| `cleaner.keep_alive`        | How long Ollama holds the model in VRAM. Default `-1` pins it indefinitely.                               |
+| `cleaner.options`           | Extra Ollama options for the model, e.g. `{"num_gpu": 999}` on an 8 GB GPU.                               |
 | `audio.sample_rate`         | Capture rate in Hz. Whisper expects `16000`; changing it forces a resample.                               |
 | `audio.channels`            | Capture channel count. Mono (`1`) is what the models want.                                                |
 | `audio.temp_file`           | Where the WAV is written. `auto` resolves to `$XDG_RUNTIME_DIR/voice-flow`.                               |

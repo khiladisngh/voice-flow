@@ -298,6 +298,9 @@ curl -s http://localhost:11434/api/generate \
 - **Consistently slower than 15 seconds** → the client timeout is exceeded and the
   raw text is used. Switch to a smaller model, or set `cleaner.enabled` to
   `false` and accept raw transcripts.
+- **Transcript longer than 500 words** → cleanup intentionally pastes the raw
+  transcript without calling Ollama. The journal logs
+  `[Cleaner] Transcript is N words (limit 500); pasting raw transcript`.
 
 Check the daemon's own view at start-up: with cleanup enabled the log contains
 `[Daemon] Connecting to Ollama cleaner (hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M)...`. If that line is

@@ -249,10 +249,11 @@ Next: [Architecture](architecture.md).
 ### `cleaner.keep_alive`
 
 How long Ollama keeps the cleanup model in VRAM. Default `-1` pins it
-indefinitely, so no dictation ever pays a model reload; this costs ~1.3 GiB of
-VRAM permanently. Ollama's own default is 5 minutes of idle, after which the
-first dictation pays a reload of ~1.8 s warm, or up to ~13 s cold from disk.
-Set `"5m"` to reclaim the VRAM when idle and accept that latency.
+indefinitely, so no dictation ever pays a model reload; the default
+Qwen3.5-2B Q4_K_M model costs ~2.3 GiB of VRAM permanently. Ollama's own
+default is 5 minutes of idle, after which the first dictation pays a reload of
+~1.8 s warm, or up to ~13 s cold from disk. Set `"5m"` to reclaim ~2.3 GiB
+when idle and accept that latency.
 
 ### `cleaner.timeout_sec`
 

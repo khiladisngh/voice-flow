@@ -49,9 +49,10 @@ sudo udevadm control --reload-rules && sudo udevadm trigger /dev/uinput
 ```
 
 !!! warning "A re-login is required"
-Group membership is only applied to new login sessions. Log out and back in
-(or reboot) before continuing — `newgrp` is not enough, because the systemd
-user manager that will run the daemon inherits its groups from the session.
+
+    Group membership is only applied to new login sessions. Log out and back in
+    (or reboot) before continuing — `newgrp` is not enough, because the systemd
+    user manager that will run the daemon inherits its groups from the session.
 
 Confirm afterwards:
 

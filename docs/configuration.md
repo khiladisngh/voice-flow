@@ -191,17 +191,40 @@ containing instruction-like phrasing cannot rewrite the system prompt.
 | `cleaner.temperature` | number  | `0.1`                                    | Sampling temperature. Keep it low; cleanup is a rewriting task, and higher values invent words.                                                                                                                                               |
 | `cleaner.timeout_sec` | number  | `15.0`                                   | Client timeout per request. Slower than this and the raw transcript is pasted, so a stalled Ollama never blocks dictation.                                                                                                                    |
 | `cleaner.keep_alive`  | int/str | `-1`                                     | Ollama `keep_alive`; `-1` pins the model in VRAM so the first dictation after an idle gap does not pay a reload.                                                                                                                              |
-| `cleaner.options`     | object  | `{}`                                     | Extra Ollama `options` merged over the defaults, for per-model tuning. On an 8 GB GPU shared with Whisper, `{"num_gpu": 999}` forces full offload of the 2B model (≈0.35 s instead of ≈1.4 s when Ollama's estimate leaves 15 % on the CPU).  |
+| `cleaner.options`     | object  | `{}`                                     | Extra Ollama `options` merged over the defaults for per-model tuning. Leave `{}` for automatic placement; set `{"num_gpu": 999}` only to opt into full GPU offload. See the guidance below.                                                   |
 
 ### Model choices
 
 Measured on an RTX 3070 (8 GB) with Whisper `large-v3-turbo` resident and a desktop session open:
 
-| Model                                  | VRAM    | Latency (p50)                                      | Notes                                                                                                                                       |
-| -------------------------------------- | ------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
-| `hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M` | ≈2.3 GB | 0.2–0.4 s with `num_gpu: 999`; 1.0–1.4 s otherwise | Default. Best cleanup for English and code-heavy dictation; keeps Hindi, Hinglish and European languages when Whisper reports the language. |
-| `hf.co/unsloth/Qwen3.5-0.8B-GGUF:Q8_0` | ≈1.4 GB | ≈0.2 s                                             | Low-VRAM option. Never switches language but leaves some fillers behind.                                                                    |
-| `qwen2.5:1.5b` (previous default)      | ≈1.3 GB | ≈0.2 s                                             | English only in practice: translates Hindi/Hinglish to English and sometimes answers the dictation instead of rewriting it.                 |
+| Model                                  | VRAM    | Latency (p50)                   | Notes                                                                                                                                       |
+| -------------------------------------- | ------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M` | ≈1.5 GB | 0.2–0.4 s with full GPU offload | Default. Best cleanup for English and code-heavy dictation; keeps Hindi, Hinglish and European languages when Whisper reports the language. |
+| `hf.co/unsloth/Qwen3.5-0.8B-GGUF:Q8_0` | ≈1.4 GB | ≈0.2 s                          | Low-VRAM option. Never switches language but leaves some fillers behind.                                                                    |
+| `qwen2.5:1.5b` (previous default)      | ≈1.3 GB | ≈0.2 s                          | English only in practice: translates Hindi/Hinglish to English and sometimes answers the dictation instead of rewriting it.                 |
+
+Ollama sizes its allocation against free VRAM at load time, so the cleaner's
+resident footprint varies: 1.5–2.4 GiB was observed depending on what else was
+on the card.
+
+### `cleaner.options`
+
+Leave `cleaner.options` at `{}` to let Ollama place the model automatically.
+When the GPU was under pressure, Ollama put 58% of the 2B model on the CPU and
+cleanup took 6–7 s per utterance. The 0.8B model spilled 18% to the CPU and
+took 1.3–1.8 s.
+
+Set `{"num_gpu": 999}` only as an opt-in when the GPU is otherwise free. It
+forces full GPU offload, dropping cleanup to ~0.2–0.4 s. On a card already
+shared with a compositor, a browser, and two Electron apps, forced offload left
+Whisper without enough memory: the card reached 7733/8192 MiB and CTranslate2
+failed with `parallel_for failed: cudaErrorInvalidDevice: invalid device
+ordinal`. `process_audio` returned `{"error": ...}`, and the dictation was lost.
+The cleaner fails open to the raw transcript, but transcription does not.
+
+On a busy 8 GiB card, either free VRAM, switch `cleaner.model` to
+`hf.co/unsloth/Qwen3.5-0.8B-GGUF:Q8_0`, or lower `cleaner.timeout_sec` so a
+spilled cleanup fails open quickly instead of stalling the paste.
 
 Behaviour that is fixed in code rather than configurable:
 
@@ -250,9 +273,9 @@ Next: [Architecture](architecture.md).
 
 How long Ollama keeps the cleanup model in VRAM. Default `-1` pins it
 indefinitely, so no dictation ever pays a model reload; the default
-Qwen3.5-2B Q4_K_M model costs ~2.3 GiB of VRAM permanently. Ollama's own
+Qwen3.5-2B Q4_K_M model costs ~1.5 GiB of VRAM permanently. Ollama's own
 default is 5 minutes of idle, after which the first dictation pays a reload of
-~1.8 s warm, or up to ~13 s cold from disk. Set `"5m"` to reclaim ~2.3 GiB
+~1.8 s warm, or up to ~13 s cold from disk. Set `"5m"` to reclaim ~1.5 GiB
 when idle and accept that latency.
 
 ### `cleaner.timeout_sec`

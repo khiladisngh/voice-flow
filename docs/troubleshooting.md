@@ -30,6 +30,7 @@ Any missing line tells you which stage to look at below.
 | No audio captured                     | `pw-record` missing, or the wrong default source                  | Install `pipewire-utils` / `pipewire-bin`; select the right input in your sound settings                               |
 | Daemon fails to start                 | Wrong path in the unit, port/socket in use, or model load failure | `systemctl --user status voice-flow` and `journalctl --user -u voice-flow`                                             |
 | Ollama unreachable                    | Server down or wrong `ollama_url`                                 | Start Ollama; cleanup silently falls back to the raw transcript, so dictation keeps working                            |
+| Cleanup suddenly takes seconds        | Ollama offloaded part of the model to the CPU when the GPU filled | Check `ollama ps` and `nvidia-smi`; free VRAM, use the 0.8B model, or lower `cleaner.timeout_sec`                      |
 
 ## The hotkey does nothing
 
@@ -306,6 +307,32 @@ Check the daemon's own view at start-up: with cleanup enabled the log contains
 `[Daemon] Connecting to Ollama cleaner (hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M)...`. If that line is
 absent, `cleaner.enabled` is `false` in your config and no cleanup was ever
 attempted.
+
+## Cleanup suddenly takes seconds
+
+**Symptom.** Dictation pauses for several seconds after transcription, and the
+journal reports a large `clean_ms` value.
+
+**Cause.** When the GPU is full, Ollama offloads part of the cleanup model to
+the CPU. The request still succeeds, but CPU inference stalls the paste.
+
+**Diagnose.**
+
+```bash
+ollama ps
+nvidia-smi
+```
+
+The `PROCESSOR` column in `ollama ps` shows a CPU/GPU split when the model has
+spilled. `nvidia-smi` shows which processes are consuming the card.
+
+**Fix.**
+
+- Free VRAM used by other GPU applications.
+- Switch `cleaner.model` to
+  `hf.co/unsloth/Qwen3.5-0.8B-GGUF:Q8_0`.
+- Lower `cleaner.timeout_sec` so a spilled cleanup fails open to the raw
+  transcript quickly instead of stalling the paste.
 
 ## Text goes to the wrong window
 

@@ -9,14 +9,14 @@ window has focus — no cloud, no account, no telemetry.
 
 Commercial dictation apps ship an Electron shell, a login screen, and a
 round-trip to someone else's GPU. Voice Flow does the whole job locally: a
-daemon that keeps a Whisper model warm in VRAM and answers in under half a
+daemon that keeps a Whisper model warm in VRAM and answers in roughly half a
 second. Capture, transcription, cleanup, and injection all happen on your
 machine.
 
 !!! warning "This is not a memory optimisation"
 
     Running inference locally costs about as much host RAM as a cloud client,
-    and adds ~3.5 GB of VRAM on top. The wins are privacy, offline operation,
+    and adds ~2.7 GB of VRAM on top. The wins are privacy, offline operation,
     and no subscription — not footprint.
 
 ## Benchmarks
@@ -29,10 +29,10 @@ median of 5–7 warm runs. Reproduce with `scripts/benchmark.py`.
 | Stage            | Engine                                   | 1.8 s clip  | 3.4 s clip  | 5.4 s clip  |
 | ---------------- | ---------------------------------------- | ----------- | ----------- | ----------- |
 | Capture          | PipeWire (`pw-record`)                   | <5 ms       | <5 ms       | <5 ms       |
-| Speech-to-text   | `whisper-large-v3-turbo`, `int8_float16` | 352 ms      | 430 ms      | 478 ms      |
-| Cleanup          | `Qwen3.5-2B Q4_K_M` via Ollama           | 35 ms       | 67 ms       | 74 ms       |
+| Speech-to-text   | `whisper-large-v3-turbo`, `int8_float16` | 326 ms      | 359 ms      | 389 ms      |
+| Cleanup          | `Qwen3.5-2B Q4_K_M` via Ollama           | 59 ms       | 91 ms       | 113 ms      |
 | Injection        | `wl-copy` + `uinput` Ctrl+V              | ~125 ms     | ~125 ms     | ~125 ms     |
-| **Text appears** |                                          | **~510 ms** | **~620 ms** | **~680 ms** |
+| **Text appears** |                                          | **~515 ms** | **~580 ms** | **~630 ms** |
 
 !!! note "Injection is two numbers"
 
@@ -47,7 +47,7 @@ median of 5–7 warm runs. Reproduce with `scripts/benchmark.py`.
 | Process                      | RSS     | PSS     | VRAM     |
 | ---------------------------- | ------- | ------- | -------- |
 | `voice-flow` daemon          | 1231 MB | 1221 MB | 1228 MiB |
-| `ollama` + `llama-server`    | 667 MB  | —       | 2372 MiB |
+| `ollama` + `llama-server`    | 667 MB  | —       | 1516 MiB |
 | A commercial Electron client | 1977 MB | 1014 MB | ~60 MiB  |
 
 PSS charges shared pages once, which is the fair way to compare a 14-process

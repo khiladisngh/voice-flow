@@ -18,11 +18,11 @@ Commercial dictation tools ship a multi-process Electron app that idles in the
 background, sends your audio to a vendor's servers, and makes you wait on a
 network round trip. Voice Flow does the same job entirely on your own machine:
 one Python daemon holding the speech model warm in VRAM, a kernel-level hotkey,
-and text pasted into the focused window in under half a second. No account, no
+and text pasted into the focused window in roughly half a second. No account, no
 subscription, no socket to anyone but localhost.
 
 **It is not a memory optimisation.** Running inference locally costs roughly
-what a cloud client costs in RAM, and adds ~3.5 GB of VRAM on top. What you get
+what a cloud client costs in RAM, and adds ~2.7 GB of VRAM on top. What you get
 for that is privacy, offline operation, and no per-seat fee. See the honest
 numbers below.
 
@@ -39,10 +39,10 @@ GPU, model size, or compute type.
 | Stage            | Engine                                  | 1.8 s clip  | 3.4 s clip  | 5.4 s clip  |
 | ---------------- | --------------------------------------- | ----------- | ----------- | ----------- |
 | Capture          | PipeWire (`pw-record`)                  | <5 ms       | <5 ms       | <5 ms       |
-| STT              | `whisper-large-v3-turbo` `int8_float16` | 352 ms      | 430 ms      | 478 ms      |
-| Cleanup          | `Qwen3.5-2B Q4_K_M` via Ollama          | 35 ms       | 67 ms       | 74 ms       |
+| STT              | `whisper-large-v3-turbo` `int8_float16` | 326 ms      | 359 ms      | 389 ms      |
+| Cleanup          | `Qwen3.5-2B Q4_K_M` via Ollama          | 59 ms       | 91 ms       | 113 ms      |
 | Injection        | `wl-copy` + `uinput` Ctrl+V             | ~125 ms     | ~125 ms     | ~125 ms     |
-| **Text appears** |                                         | **~510 ms** | **~620 ms** | **~680 ms** |
+| **Text appears** |                                         | **~515 ms** | **~580 ms** | **~630 ms** |
 
 Injection is two numbers, not one. `paste()` delivers Ctrl+V after ~125 ms, then
 **sleeps 350 ms before restoring your previous clipboard** — so the daemon is
@@ -59,22 +59,22 @@ Electron app is not penalised for mapping the same libraries repeatedly.
 | Process                      | RSS     | PSS     | VRAM     |
 | ---------------------------- | ------- | ------- | -------- |
 | `voice-flow` daemon          | 1231 MB | 1221 MB | 1228 MiB |
-| `ollama` + `llama-server`    | 667 MB  | —       | 2372 MiB |
+| `ollama` + `llama-server`    | 667 MB  | —       | 1516 MiB |
 | A commercial Electron client | 1977 MB | 1014 MB | ~60 MiB  |
 
 So: lower RSS than the Electron client, slightly **higher** PSS.
 
-Voice Flow reserves **~3.5 GiB of VRAM** while running: 1228 MiB for Whisper and
-2372 MiB for the Ollama cleaner's `llama-server`, both held resident on purpose
+Voice Flow reserves **~2.7 GiB of VRAM** while running: 1228 MiB for Whisper and
+1516 MiB for the Ollama cleaner's `llama-server`, both held resident on purpose
 so no utterance pays a model load. Because `cleaner.keep_alive` defaults to `-1`,
 the cleanup model never unloads.
 
-That leaves ~4.4 GiB on an otherwise-idle 8 GiB card, minus whatever the rest of
+That leaves ~5.4 GiB on an otherwise-idle 8 GiB card, minus whatever the rest of
 your desktop puts on the GPU — a compositor, browser, and editor together
 accounted for another ~690 MiB on the machine these figures come from. Set
-`cleaner.keep_alive` to `"5m"` to reclaim ~2.3 GiB when idle, at the cost of a
+`cleaner.keep_alive` to `"5m"` to reclaim ~1.5 GiB when idle, at the cost of a
 reload on the first dictation after a pause. The low-VRAM
-`Qwen3.5-0.8B Q8_0` alternative uses 1394 MiB.
+`Qwen3.5-0.8B Q8_0` alternative uses 1418 MiB.
 
 ## Requirements
 

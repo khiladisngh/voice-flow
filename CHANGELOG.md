@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.1.2] - 2026-09-02
+
 ### Fixed
 
 - Virtual keyboard injection failure due to `/dev/uinput` permissions: documented and automated the persistent udev rule (`99-uinput.rules`) for modern systemd/Wayland distributions.

@@ -328,7 +328,13 @@ spilled. `nvidia-smi` shows which processes are consuming the card.
 
 **Fix.**
 
-- Free VRAM used by other GPU applications.
+1. Free the GPU, then drop the pinned model with
+   `ollama stop hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M` (or make a request carrying
+   `"keep_alive": 0`). Then run `systemctl --user restart voice-flow` so the
+   daemon's warm-up reloads the model and Ollama re-decides the CPU/GPU split.
+   Restarting the daemon alone is not enough: `keep_alive: -1` keeps the
+   badly-placed model resident across the restart.
+
 - Switch `cleaner.model` to
   `hf.co/unsloth/Qwen3.5-0.8B-GGUF:Q8_0`.
 - Lower `cleaner.timeout_sec` so a spilled cleanup fails open to the raw

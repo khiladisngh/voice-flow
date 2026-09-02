@@ -274,8 +274,17 @@ Next: [Architecture](architecture.md).
 
 How long Ollama keeps the cleanup model in VRAM. Default `-1` pins it
 indefinitely, so no dictation ever pays a model reload; the default
-Qwen3.5-2B Q4_K_M model costs ~1.5 GiB of VRAM permanently. Ollama's own
-default is 5 minutes of idle, after which the first dictation pays a reload of
+Qwen3.5-2B Q4_K_M model costs ~1.5 GiB of VRAM permanently.
+
+That pin also freezes Ollama's CPU/GPU layer split: Ollama decides the split once,
+when the model loads, using the VRAM free at that moment. A model loaded while the
+GPU was busy can therefore remain partly on the CPU indefinitely. In one
+measurement, the same model at `83%/17% CPU/GPU` took 7.6–8.1 s per request and
+still sat at 83% on the CPU with 3.4 GiB free; unloading and reloading it with
+that memory available gave `100% GPU` and 0.40 s per request — the same model and
+`num_ctx=4096`, about 19× faster from placement alone.
+
+Ollama's own default is 5 minutes of idle, after which the first dictation pays a reload of
 ~1.8 s warm, or up to ~13 s cold from disk. Set `"5m"` to reclaim ~1.5 GiB
 when idle and accept that latency.
 

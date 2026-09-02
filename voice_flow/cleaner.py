@@ -1,3 +1,5 @@
+import re
+
 import requests
 
 SYSTEM_PROMPT = """You are a specialized speech-to-text post-processor.
@@ -5,9 +7,50 @@ Your job is to convert spoken stream-of-consciousness text into polished, readab
 - Strip verbal hesitations, filler words, and stutters (e.g., "um", "uh", "like", "you know", "kind of").
 - Add proper punctuation, capitalization, and logical sentence breaks.
 - Format numbers, dates, times, units, and technical terms appropriately.
-- Preserve the exact meaning, tone, and specific vocabulary of the speaker.
+- Keep code identifiers, file names, commands, and technical terms exactly as spoken.
+- Preserve the exact meaning, tone, and specific vocabulary of the speaker; keep questions as questions and instructions as instructions.
+- Never translate, answer, or summarize the spoken text; only rewrite it.
 - Do NOT add polite greetings, introductory phrases, or conversational commentary.
 - Return ONLY the finalized text, with no quotes or explanations."""
+
+# Whisper language codes -> names the prompt can use. Naming the language is what
+# stops small models from translating; "same language as the input" was not enough.
+LANGUAGE_NAMES = {
+    "en": "English",
+    "hi": "Hindi",
+    "ur": "Urdu",
+    "bn": "Bengali",
+    "ta": "Tamil",
+    "te": "Telugu",
+    "mr": "Marathi",
+    "gu": "Gujarati",
+    "pa": "Punjabi",
+    "es": "Spanish",
+    "fr": "French",
+    "de": "German",
+    "it": "Italian",
+    "pt": "Portuguese",
+    "nl": "Dutch",
+    "ru": "Russian",
+    "tr": "Turkish",
+    "ar": "Arabic",
+    "zh": "Chinese",
+    "ja": "Japanese",
+    "ko": "Korean",
+}
+
+_THINK_BLOCK = re.compile(r"\A\s*<think>.*?</think>\s*", re.DOTALL)
+
+
+def _strip_think(text: str) -> str:
+    """Drop a leading <think>…</think> block if a thinking model leaked one into `response`."""
+    return _THINK_BLOCK.sub("", text, count=1)
+
+
+# num_ctx (4096) bounds prompt + generation together. Past this many words the
+# request would overflow the window and the model would silently clean a
+# truncated prompt, so paste the raw transcript instead of losing its start.
+MAX_CLEAN_WORDS = 500
 
 
 class TextCleaner:
@@ -57,7 +100,7 @@ class TextCleaner:
             "options": {
                 "temperature": self.temperature,
                 "num_predict": num_predict,
-                "num_ctx": 2048,
+                "num_ctx": 4096,
                 **self.options,
             },
         }
@@ -79,28 +122,46 @@ class TextCleaner:
             print(f"[Cleaner] Warm-up failed ({exc.__class__.__name__}); cleanup may be slow on first use")
             return False
 
-    def clean(self, raw_text: str) -> str:
-        """Post-process speech text, falling back to the raw transcript."""
+    def clean(self, raw_text: str, language: str | None = None) -> str:
+        """Post-process speech text, falling back to the raw transcript.
+
+        `language` is Whisper's detected code (e.g. "hi"); when given, the prompt
+        names it so the model rewrites in that language instead of translating.
+        """
         if not raw_text:
             return ""
         raw_text = raw_text.strip()
-        if not raw_text or len(raw_text.split()) < 3:
+        words = raw_text.split()
+        if not raw_text or len(words) < 3:
             # Very short text (1-2 words) rarely needs LLM cleanup
             return raw_text
+        if len(words) > MAX_CLEAN_WORDS:
+            print(
+                f"[Cleaner] Transcript is {len(words)} words (limit {MAX_CLEAN_WORDS}); "
+                "pasting raw transcript"
+            )
+            return raw_text
 
-        prompt = f"{SYSTEM_PROMPT}\n\n<spoken_text>\n{raw_text}\n</spoken_text>\n\nClean Output:"
+        prompt = SYSTEM_PROMPT
+        if language:
+            name = LANGUAGE_NAMES.get(language, language)
+            prompt += (
+                f"\n\nThe spoken text is in {name}. Write the output in {name}, "
+                "in the same script the speaker used."
+            )
+        prompt += f"\n\n<spoken_text>\n{raw_text}\n</spoken_text>\n\nClean Output:"
 
         try:
             resp = self.session.post(
                 self.ollama_url,
-                json=self._payload(prompt, max(128, len(raw_text.split()) * 3)),
+                json=self._payload(prompt, max(128, len(words) * 3)),
                 timeout=self.timeout,
             )
             if resp.status_code != 200:
                 print(f"[Cleaner] Ollama returned HTTP {resp.status_code}; pasting raw transcript")
                 return raw_text
 
-            cleaned = resp.json().get("response", "").strip()
+            cleaned = _strip_think(resp.json().get("response", "")).strip()
             if not cleaned:
                 print("[Cleaner] Ollama returned an empty response; pasting raw transcript")
                 return raw_text

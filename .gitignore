@@ -30,3 +30,6 @@ site/
 
 # Node tooling (prettier)
 node_modules/
+
+# Knowledge graph output (graphify)
+graphify-out/

@@ -11,7 +11,7 @@ graph LR
     A[Right Ctrl + Right Alt] -->|evdev| B[Hotkey Listener]
     B --> C[PipeWire pw-record]
     C -->|WAV in XDG_RUNTIME_DIR| D[faster-whisper CUDA]
-    D -->|raw text| E[Ollama qwen2.5:1.5b]
+    D -->|raw text| E[Ollama Qwen3.5-2B]
     E -->|clean text| F[wl-copy + uinput Ctrl+V]
     F --> G[Active Wayland Window]
 ```
@@ -94,10 +94,10 @@ GPU and a 1.6 GB model download.
 
 ### `cleaner`
 
-A single `requests.Session` posting to Ollama's `/api/generate`. `clean(raw)`
-never raises and never returns empty for non-empty input; every failure path
-returns the raw transcript. The short-input bypass, 4-second timeout, adaptive
-`num_predict`, and prompt structure are covered in
+A single `requests.Session` posting to Ollama's `/api/generate`. `clean(raw,
+language)` never raises and never returns empty for non-empty input; every
+failure path returns the raw transcript. The short- and long-input bypasses,
+15-second timeout, adaptive `num_predict`, and prompt structure are covered in
 [Configuration](configuration.md#cleaner).
 
 ### `injector`

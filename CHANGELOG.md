@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Changed
+
+- Default cleaner model is now `hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M`. The previous `qwen2.5:1.5b` translated Hindi and Hinglish dictation to English and sometimes answered the dictation instead of rewriting it.
+- The cleaner names Whisper's detected language in the prompt and always disables model thinking per request, so any Ollama model — including thinking-capable ones — can be set in `cleaner.model` without code changes.
+
+### Added
+
+- `cleaner.options`: extra Ollama options merged per request (e.g. `{"num_gpu": 999}` to force full GPU offload).
+- `scripts/cleaner_probe.py`: multilingual probe for evaluating a candidate cleaner model before swapping.
+
 ## [0.1.2] - 2026-09-02
 
 ### Fixed

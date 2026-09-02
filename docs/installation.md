@@ -49,9 +49,9 @@ sudo udevadm control --reload-rules && sudo udevadm trigger /dev/uinput
 ```
 
 !!! warning "A re-login is required"
-    Group membership is only applied to new login sessions. Log out and back in
-    (or reboot) before continuing — `newgrp` is not enough, because the systemd
-    user manager that will run the daemon inherits its groups from the session.
+Group membership is only applied to new login sessions. Log out and back in
+(or reboot) before continuing — `newgrp` is not enough, because the systemd
+user manager that will run the daemon inherits its groups from the session.
 
 Confirm afterwards:
 
@@ -109,7 +109,7 @@ single download needs network access; nothing afterwards does.
 Transcript cleanup runs against a local [Ollama](https://ollama.com/) server.
 
 ```bash
-ollama pull qwen2.5:1.5b
+ollama pull hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M
 ```
 
 Verify the endpoint the daemon will use:
@@ -193,9 +193,9 @@ CUDA. Expect transcription to take seconds rather than ~360 ms. Dropping
 `stt.model_size` to `small` or `base` trades accuracy for a large speed gain —
 see [Configuration](configuration.md#stt) for the model trade-off table.
 
-Cleanup also runs happily on the CPU: `qwen2.5:1.5b` is small enough that Ollama
-will serve it without a GPU, just more slowly. If the round trip exceeds the
-4-second client timeout, the raw transcript is pasted instead.
+Cleanup also runs on the CPU: `hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M` is small
+enough that Ollama can serve it without a GPU, just more slowly. If the round
+trip exceeds the 15-second client timeout, the raw transcript is pasted instead.
 
 ## Uninstall
 

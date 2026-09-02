@@ -40,7 +40,7 @@ GPU, model size, or compute type.
 | ---------------- | --------------------------------------- | ----------- | ----------- | ----------- |
 | Capture          | PipeWire (`pw-record`)                  | <5 ms       | <5 ms       | <5 ms       |
 | STT              | `whisper-large-v3-turbo` `int8_float16` | 352 ms      | 430 ms      | 478 ms      |
-| Cleanup          | `qwen2.5:1.5b` via Ollama               | 35 ms       | 67 ms       | 74 ms       |
+| Cleanup          | `Qwen3.5-2B Q4_K_M` via Ollama          | 35 ms       | 67 ms       | 74 ms       |
 | Injection        | `wl-copy` + `uinput` Ctrl+V             | ~125 ms     | ~125 ms     | ~125 ms     |
 | **Text appears** |                                         | **~510 ms** | **~620 ms** | **~680 ms** |
 
@@ -139,7 +139,7 @@ cd voice-flow
 uv sync --extra cuda
 
 # Pull the cleanup model
-ollama pull qwen2.5:1.5b
+ollama pull hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M
 
 # Install and start the user service. The sed rewrites the unit's paths to
 # wherever you cloned, so the repository can live anywhere.
@@ -198,8 +198,9 @@ Voice Flow reads `config.json` from the project root. The shipped defaults:
   "cleaner": {
     "enabled": true,
     "ollama_url": "http://localhost:11434/api/generate",
-    "model": "qwen2.5:1.5b",
-    "temperature": 0.1
+    "model": "hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M",
+    "temperature": 0.1,
+    "options": {}
   },
   "audio": {
     "sample_rate": 16000,
@@ -225,7 +226,8 @@ Voice Flow reads `config.json` from the project root. The shipped defaults:
 | `stt.language`              | Force a language code such as `"en"`, or leave `null` to autodetect per utterance.                        |
 | `cleaner.enabled`           | Send transcripts through the local LLM for punctuation and filler removal. `false` pastes the raw text.   |
 | `cleaner.ollama_url`        | Local Ollama generate endpoint. Change only if Ollama listens elsewhere.                                  |
-| `cleaner.model`             | Ollama model used for cleanup. `qwen2.5:1.5b` keeps cleanup at ~55 ms.                                    |
+| `cleaner.model`             | Ollama model used for cleanup. Default `hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M`; any pulled model works.    |
+| `cleaner.options`           | Extra Ollama options for the model, e.g. `{"num_gpu": 999}` on an 8 GB GPU.                               |
 | `cleaner.temperature`       | Sampling temperature for cleanup. Keep it low so the model edits rather than rewrites.                    |
 | `audio.sample_rate`         | Capture rate in Hz. Whisper expects `16000`; changing it forces a resample.                               |
 | `audio.channels`            | Capture channel count. Mono (`1`) is what the models want.                                                |
@@ -241,7 +243,7 @@ graph LR
     A[Right Ctrl + Right Alt] -->|evdev| B[Hotkey Listener]
     B --> C[PipeWire pw-record]
     C -->|WAV in XDG_RUNTIME_DIR| D[faster-whisper CUDA]
-    D -->|raw text| E[Ollama qwen2.5:1.5b]
+    D -->|raw text| E[Ollama Qwen3.5-2B]
     E -->|clean text| F[wl-copy + uinput Ctrl+V]
     F --> G[Active Wayland Window]
 ```

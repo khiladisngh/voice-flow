@@ -13,10 +13,11 @@
   "cleaner": {
     "enabled": true,
     "ollama_url": "http://localhost:11434/api/generate",
-    "model": "qwen2.5:1.5b",
+    "model": "hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M",
     "temperature": 0.1,
     "timeout_sec": 15.0,
-    "keep_alive": -1
+    "keep_alive": -1,
+    "options": {}
   },
   "audio": {
     "sample_rate": 16000,

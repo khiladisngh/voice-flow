@@ -30,7 +30,7 @@ median of 5–7 warm runs. Reproduce with `scripts/benchmark.py`.
 | ---------------- | ---------------------------------------- | ----------- | ----------- | ----------- |
 | Capture          | PipeWire (`pw-record`)                   | <5 ms       | <5 ms       | <5 ms       |
 | Speech-to-text   | `whisper-large-v3-turbo`, `int8_float16` | 352 ms      | 430 ms      | 478 ms      |
-| Cleanup          | `qwen2.5:1.5b` via Ollama                | 35 ms       | 67 ms       | 74 ms       |
+| Cleanup          | `Qwen3.5-2B Q4_K_M` via Ollama           | 35 ms       | 67 ms       | 74 ms       |
 | Injection        | `wl-copy` + `uinput` Ctrl+V              | ~125 ms     | ~125 ms     | ~125 ms     |
 | **Text appears** |                                          | **~510 ms** | **~620 ms** | **~680 ms** |
 

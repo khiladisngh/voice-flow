@@ -31,8 +31,11 @@ invalid value surfaces as an error from the component that consumes it.
   "cleaner": {
     "enabled": true,
     "ollama_url": "http://localhost:11434/api/generate",
-    "model": "qwen2.5:1.5b",
-    "temperature": 0.1
+    "model": "hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M",
+    "temperature": 0.1,
+    "timeout_sec": 15.0,
+    "keep_alive": -1,
+    "options": {}
   },
   "audio": {
     "sample_rate": 16000,
@@ -180,24 +183,34 @@ LLM post-processing through a local [Ollama](https://ollama.com/) server. The
 transcript is wrapped in `<spoken_text>` delimiters before being sent, so speech
 containing instruction-like phrasing cannot rewrite the system prompt.
 
-| Key                   | Type    | Default                                 | Effect                                                                                                                                                                            |
-| --------------------- | ------- | --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `cleaner.enabled`     | boolean | `true`                                  | Whether to post-process at all. `false` pastes the raw Whisper transcript and skips the Ollama connection entirely.                                                               |
-| `cleaner.ollama_url`  | string  | `"http://localhost:11434/api/generate"` | Full URL of Ollama's generate endpoint. Point it at another host to use a remote server — note that doing so sends transcripts over the network and breaks the offline guarantee. |
-| `cleaner.model`       | string  | `"qwen2.5:1.5b"`                        | Ollama model tag. Must already be pulled (`ollama pull <tag>`). Larger models clean better but add latency directly to your dictation.                                            |
-| `cleaner.temperature` | number  | `0.1`                                   | Sampling temperature. Keep it low; cleanup is a rewriting task, and higher values invent words.                                                                                   |
+| Key                   | Type    | Default                                  | Effect                                                                                                                                                                                                                                        |
+| --------------------- | ------- | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `cleaner.enabled`     | boolean | `true`                                   | Whether to post-process at all. `false` pastes the raw Whisper transcript and skips the Ollama connection entirely.                                                                                                                           |
+| `cleaner.ollama_url`  | string  | `"http://localhost:11434/api/generate"`  | Full URL of Ollama's generate endpoint. Point it at another host to use a remote server — note that doing so sends transcripts over the network and breaks the offline guarantee.                                                             |
+| `cleaner.model`       | string  | `"hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M"` | Any Ollama model name, including `hf.co/<repo>:<quant>` GGUF pulls. Must already be pulled (`ollama pull <name>`). Thinking-capable models are handled automatically (`think` is disabled per request). Restart the daemon after changing it. |
+| `cleaner.temperature` | number  | `0.1`                                    | Sampling temperature. Keep it low; cleanup is a rewriting task, and higher values invent words.                                                                                                                                               |
+| `cleaner.timeout_sec` | number  | `15.0`                                   | Client timeout per request. Slower than this and the raw transcript is pasted, so a stalled Ollama never blocks dictation.                                                                                                                    |
+| `cleaner.keep_alive`  | int/str | `-1`                                     | Ollama `keep_alive`; `-1` pins the model in VRAM so the first dictation after an idle gap does not pay a reload.                                                                                                                              |
+| `cleaner.options`     | object  | `{}`                                     | Extra Ollama `options` merged over the defaults, for per-model tuning. On an 8 GB GPU shared with Whisper, `{"num_gpu": 999}` forces full offload of the 2B model (≈0.35 s instead of ≈1.4 s when Ollama's estimate leaves 15 % on the CPU).  |
+
+### Model choices
+
+Measured on an RTX 3070 (8 GB) with Whisper `large-v3-turbo` resident and a desktop session open:
+
+| Model                                  | VRAM    | Latency (p50)                                      | Notes                                                                                                                                       |
+| -------------------------------------- | ------- | -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M` | ≈2.3 GB | 0.2–0.4 s with `num_gpu: 999`; 1.0–1.4 s otherwise | Default. Best cleanup for English and code-heavy dictation; keeps Hindi, Hinglish and European languages when Whisper reports the language. |
+| `hf.co/unsloth/Qwen3.5-0.8B-GGUF:Q8_0` | ≈1.4 GB | ≈0.2 s                                             | Low-VRAM option. Never switches language but leaves some fillers behind.                                                                    |
+| `qwen2.5:1.5b` (previous default)      | ≈1.3 GB | ≈0.2 s                                             | English only in practice: translates Hindi/Hinglish to English and sometimes answers the dictation instead of rewriting it.                 |
 
 Behaviour that is fixed in code rather than configurable:
 
-- **4-second request timeout.** Slower than that and the raw transcript is pasted
-  instead, so a stalled Ollama never blocks dictation.
-- **Silent fallback.** Any failure — connection refused, non-200 status, empty
-  response — returns the raw transcript. Cleanup can never lose your words.
-- **Short-input bypass.** Text of fewer than three words skips the LLM entirely,
-  because one or two words rarely need cleanup and the round trip would dominate
-  the latency budget.
-- **Adaptive output cap.** `num_predict` is `max(128, word_count * 3)`, enough
-  headroom to rewrite long dictations without allowing runaway generation.
+- **Language steering.** Whisper's detected language is named in the prompt ("The spoken text is in Hindi…"), which is what keeps small models from translating.
+- **Thinking disabled.** Every request sends `think: false`; a leaked `<think>` block is stripped from the response as a fail-safe.
+- **Silent fallback.** Any failure — connection refused, non-200 status, empty response — returns the raw transcript. Cleanup can never lose your words.
+- **Short-input bypass.** Text of fewer than three words skips the LLM entirely.
+- **Long-transcript bypass.** Transcripts longer than 500 words skip the LLM and paste raw, because the prompt plus generation would exceed the 4096-token context window and the model would silently clean a truncated transcript.
+- **Adaptive output cap.** `num_predict` is `max(128, word_count * 3)`; `num_ctx` is fixed at 4096.
 - **Persistent HTTP session.** Connections are reused across utterances.
 
 ## `audio`

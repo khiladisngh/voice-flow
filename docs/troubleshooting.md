@@ -12,7 +12,7 @@ A healthy start-up log contains, in order:
 
 ```
 [Daemon] Initializing Transcriber on cuda (large-v3-turbo)...
-[Daemon] Connecting to Ollama cleaner (qwen2.5:1.5b)...
+[Daemon] Connecting to Ollama cleaner (hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M)...
 [Hotkey] Listening to keyboard: <your keyboard> (/dev/input/eventN)
 [Hotkey] Active global combo: KEY_RIGHTCTRL + KEY_RIGHTALT
 [Daemon] Voice Flow Daemon is warm and ready!
@@ -278,29 +278,29 @@ words to a broken cleaner, which also means the failure is silent.
 
 ```bash
 curl -s -o /dev/null -w '%{http_code}\n' http://localhost:11434/api/tags
-ollama list | grep qwen2.5:1.5b
+ollama list | grep Qwen3.5-2B
 ```
 
 Test the exact endpoint the daemon uses:
 
 ```bash
 curl -s http://localhost:11434/api/generate \
-  -d '{"model":"qwen2.5:1.5b","prompt":"say ok","stream":false}' | head -c 200
+  -d '{"model":"hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M","think":false,"prompt":"say ok","stream":false}' | head -c 200
 ```
 
 **Fix.**
 
 - **Server down** → `systemctl --user start ollama` (or `systemctl start ollama`,
   depending on how you installed it).
-- **Model not pulled** → `ollama pull qwen2.5:1.5b`.
+- **Model not pulled** → `ollama pull hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M`.
 - **Different host or port** → correct `cleaner.ollama_url` in `config.json`. It
   must be the full generate URL, including `/api/generate`.
-- **Consistently slower than 4 seconds** → the client timeout is exceeded and the
+- **Consistently slower than 15 seconds** → the client timeout is exceeded and the
   raw text is used. Switch to a smaller model, or set `cleaner.enabled` to
   `false` and accept raw transcripts.
 
 Check the daemon's own view at start-up: with cleanup enabled the log contains
-`[Daemon] Connecting to Ollama cleaner (qwen2.5:1.5b)...`. If that line is
+`[Daemon] Connecting to Ollama cleaner (hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M)...`. If that line is
 absent, `cleaner.enabled` is `false` in your config and no cleanup was ever
 attempted.
 

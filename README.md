@@ -22,7 +22,7 @@ and text pasted into the focused window in under half a second. No account, no
 subscription, no socket to anyone but localhost.
 
 **It is not a memory optimisation.** Running inference locally costs roughly
-what a cloud client costs in RAM, and adds ~2.4 GB of VRAM on top. What you get
+what a cloud client costs in RAM, and adds ~3.5 GB of VRAM on top. What you get
 for that is privacy, offline operation, and no per-seat fee. See the honest
 numbers below.
 
@@ -58,8 +58,8 @@ Electron app is not penalised for mapping the same libraries repeatedly.
 
 | Process                      | RSS     | PSS     | VRAM     |
 | ---------------------------- | ------- | ------- | -------- |
-| `voice-flow` daemon          | 1231 MB | 1221 MB | 1146 MiB |
-| `ollama` + `llama-server`    | 667 MB  | —       | 1296 MiB |
+| `voice-flow` daemon          | 1231 MB | 1221 MB | 1228 MiB |
+| `ollama` + `llama-server`    | 667 MB  | —       | 2372 MiB |
 | A commercial Electron client | 1977 MB | 1014 MB | ~60 MiB  |
 
 So: lower RSS than the Electron client, slightly **higher** PSS.

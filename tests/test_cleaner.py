@@ -138,3 +138,25 @@ def test_cleaner_close():
     with patch.object(cleaner.session, "close") as mock_close:
         cleaner.close()
         mock_close.assert_called_once()
+
+
+def test_payload_disables_thinking_and_pins_context():
+    cleaner = TextCleaner()
+    payload = cleaner._payload("prompt", 128)
+    assert payload["think"] is False
+    assert payload["options"]["num_ctx"] == 2048
+    assert payload["options"]["temperature"] == cleaner.temperature
+    assert payload["options"]["num_predict"] == 128
+
+
+def test_payload_merges_user_options_over_defaults():
+    cleaner = TextCleaner(temperature=0.1, options={"num_gpu": 999, "temperature": 0.0})
+    options = cleaner._payload("prompt", 128)["options"]
+    assert options["num_gpu"] == 999
+    assert options["temperature"] == 0.0  # explicit options win over the temperature kwarg
+    assert options["num_predict"] == 128
+
+
+def test_payload_without_options_has_no_extra_keys():
+    options = TextCleaner()._payload("prompt", 128)["options"]
+    assert set(options) == {"temperature", "num_predict", "num_ctx"}

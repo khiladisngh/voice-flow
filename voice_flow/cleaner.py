@@ -29,16 +29,20 @@ class TextCleaner:
     def __init__(
         self,
         ollama_url: str = "http://localhost:11434/api/generate",
-        model: str = "qwen2.5:1.5b",
+        model: str = "hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M",
         temperature: float = 0.1,
         timeout: float = 15.0,
         keep_alive: int | str = -1,
+        options: dict | None = None,
     ):
         self.ollama_url = ollama_url
         self.model = model
         self.temperature = temperature
         self.timeout = timeout
         self.keep_alive = keep_alive
+        # Extra Ollama options merged over the defaults, e.g. {"num_gpu": 999}
+        # to force full GPU offload when Ollama's fit estimate is too cautious.
+        self.options = dict(options or {})
         self.session = requests.Session()
 
     def _payload(self, prompt: str, num_predict: int) -> dict:
@@ -47,9 +51,14 @@ class TextCleaner:
             "prompt": prompt,
             "stream": False,
             "keep_alive": self.keep_alive,
+            # Thinking models (Qwen3.5, …) reason by default and have no prompt-level
+            # switch; Ollama accepts think=false for non-thinking models as well.
+            "think": False,
             "options": {
                 "temperature": self.temperature,
                 "num_predict": num_predict,
+                "num_ctx": 2048,
+                **self.options,
             },
         }
 

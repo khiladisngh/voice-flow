@@ -231,11 +231,14 @@ def test_system_prompt_has_no_code_like_examples():
         assert token not in SYSTEM_PROMPT
 
 
-def test_clean_long_transcript_skips_llm_and_returns_raw():
+def test_clean_long_transcript_skips_llm_and_returns_raw(capsys):
     cleaner = TextCleaner()
     raw_text = " ".join(["word"] * 501)
     with patch.object(cleaner.session, "post") as post:
         assert cleaner.clean(raw_text) == raw_text
+    output = capsys.readouterr().out
+    assert "[Cleaner]" in output
+    assert "501 words" in output
     post.assert_not_called()
 
 

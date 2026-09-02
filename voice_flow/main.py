@@ -71,10 +71,11 @@ def run_standalone_process(config: dict, audio_path: str):
     if cleaner_cfg.get("enabled", True) and raw_text:
         cleaner = TextCleaner(
             ollama_url=cleaner_cfg.get("ollama_url", "http://localhost:11434/api/generate"),
-            model=cleaner_cfg.get("model", "qwen2.5:1.5b"),
+            model=cleaner_cfg.get("model", "hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M"),
             temperature=cleaner_cfg.get("temperature", 0.1),
+            options=cleaner_cfg.get("options", {}),
         )
-        final_text = cleaner.clean(raw_text)
+        final_text = cleaner.clean(raw_text, language=lang)
 
     pasted = False
     if final_text:

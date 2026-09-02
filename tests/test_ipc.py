@@ -187,6 +187,44 @@ def test_daemon_framed_server_loop(
 @patch("voice_flow.daemon.TextInjector")
 @patch("voice_flow.daemon.AudioRecorder")
 @patch("voice_flow.daemon.GlobalHotkeyListener")
+def test_daemon_process_audio_passes_detected_language_to_cleaner(
+    mock_hotkey_cls,
+    mock_recorder_cls,
+    mock_injector_cls,
+    mock_cleaner_cls,
+    mock_transcriber_cls,
+    tmp_path,
+    monkeypatch,
+):
+    from voice_flow.daemon import VoiceFlowDaemon
+
+    monkeypatch.setenv("XDG_RUNTIME_DIR", str(tmp_path))
+    mock_transcriber_cls.return_value.transcribe.return_value = ("raw hindi words here", "hi", 1.2)
+    mock_cleaner_cls.return_value.warm_up.return_value = True
+    mock_cleaner_cls.return_value.clean.return_value = "clean"
+    mock_injector_cls.return_value.paste.return_value = True
+
+    config = {
+        "stt": {"device": "cpu", "model_size": "tiny"},
+        "cleaner": {"options": {"num_gpu": 999}},
+        "ui": {"restore_clipboard": False},
+        "audio": {"temp_file": "auto"},
+        "hotkey": {"enabled": False},
+    }
+    daemon = VoiceFlowDaemon(config)
+    result = daemon.process_audio("/nonexistent.wav")
+
+    assert mock_cleaner_cls.call_args.kwargs["options"] == {"num_gpu": 999}
+    mock_cleaner_cls.return_value.clean.assert_called_once_with("raw hindi words here", language="hi")
+    assert result["language"] == "hi"
+    assert result["cleaned"] == "clean"
+
+
+@patch("voice_flow.daemon.Transcriber")
+@patch("voice_flow.daemon.TextCleaner")
+@patch("voice_flow.daemon.TextInjector")
+@patch("voice_flow.daemon.AudioRecorder")
+@patch("voice_flow.daemon.GlobalHotkeyListener")
 def test_daemon_signal_handling_and_lifecycle(
     mock_hotkey_cls,
     mock_recorder_cls,

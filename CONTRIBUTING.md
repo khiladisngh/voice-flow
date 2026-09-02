@@ -29,7 +29,7 @@ By participating you agree to abide by the [Code of Conduct](CODE_OF_CONDUCT.md)
   transcription. Without one, set `stt.compute_type` to a CPU-friendly value; the
   code paths are identical, just slower.
 - **Optional: [Ollama](https://ollama.com/)** for LLM cleanup. Pull the model with
-  `ollama pull qwen2.5:1.5b`. If Ollama is not running, set `cleaner.enabled` to
+  `ollama pull hf.co/unsloth/Qwen3.5-2B-GGUF:Q4_K_M`. If Ollama is not running, set `cleaner.enabled` to
   `false` in `config.json` and raw transcripts are injected verbatim.
 
 ## Setup

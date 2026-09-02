@@ -68,7 +68,7 @@ slightly higher PSS.
 - **Wayland text injection.** Text is placed on the clipboard with `wl-copy` and
   pasted with a synthetic `Ctrl+V` from a persistent `uinput` virtual keyboard.
   The previous clipboard contents are restored afterwards.
-- **LLM post-processing.** A local 1.5B model strips "um", "uh", and "you know",
+- **LLM post-processing.** A local 2B model strips "um", "uh", and "you know",
   restores punctuation and capitalisation, and formats numbers and units.
 - **Secure by construction.** Recorded audio, the PID file, and the IPC socket
   live in `$XDG_RUNTIME_DIR/voice-flow` at mode `0700`.

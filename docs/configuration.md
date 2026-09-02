@@ -195,7 +195,7 @@ containing instruction-like phrasing cannot rewrite the system prompt.
 
 ### Model choices
 
-Measured on an RTX 3070 (8 GB) with Whisper `large-v3-turbo` resident, a desktop session open, and the ~40-word samples in [`scripts/cleaner_probe.py`](../scripts/cleaner_probe.py):
+Measured on an RTX 3070 (8 GB) with Whisper `large-v3-turbo` resident, a desktop session open, and the 22–38 word samples in [`scripts/cleaner_probe.py`](../scripts/cleaner_probe.py):
 
 | Model                                  | VRAM    | Latency (p50)                   | Notes                                                                                                                                       |
 | -------------------------------------- | ------- | ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
